@@ -1,0 +1,214 @@
+/* --------------------------------------------------------------------------
+   Tasks View stylesheet (aligned with App.css tokens and buttons)
+   - Composer on top with 30px gap and separator
+   - Two-row filters on the left, List/Eisenhower toggle on the right
+   - Cards for list rows; ToggleButton sits left in the 36px column
+   Scoped under .main[data-mode="tasks"] to avoid bleed.
+--------------------------------------------------------------------------- */
+
+/* ---------- Tokens (inherit from App.css when present) ---------- */
+.main[data-mode="tasks"] .TasksRoot{
+  --tx-gap: 12px;
+  --tx-gap-lg: 16px;
+  --tx-radius: 12px;
+  --tx-radius-sm: 10px;
+  --tx-border: var(--hair, #d9d9d9);
+  --tx-muted: #6b7280;
+  --tx-ink: var(--ink, #0b0b0b);
+  --tx-surface: #ffffff;
+  --tx-surface-2: #f8fafc;
+  --tx-accent: var(--accent, #E29612);
+  --tx-ring: rgba(226,150,18,.25);
+  --tx-shadow: 0 6px 16px rgba(2,6,23,.06);
+}
+
+/* ---------- Root layout ---------- */
+.main[data-mode="tasks"] .TasksRoot{
+  max-width: var(--app-width, 960px);
+  margin: 0 auto;
+  padding: 8px var(--band-pad,16px) 24px;
+  display: grid;
+  gap: var(--tx-gap-lg);
+  color: var(--tx-ink);
+}
+
+/* Composer spacing + separator */
+.main[data-mode="tasks"] .TasksComposer{
+  margin-bottom: 30px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--tx-border);
+}
+
+/* ---------- Filters bar ---------- */
+.main[data-mode="tasks"] .TasksBar{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 16px;
+  padding: 6px 0 4px;
+}
+@media (max-width: 720px){
+  .main[data-mode="tasks"] .TasksBar{ grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* Left stack */
+.main[data-mode="tasks"] .FiltersStack{ display: grid; gap: 8px; }
+
+/* Chips row → match button look from App.css (bold, rounded, accent when active) */
+.main[data-mode="tasks"] .ChipGroup{ display: flex; flex-wrap: wrap; gap: 8px; }
+.main[data-mode="tasks"] .Chip{
+  border: 1.5px solid var(--tx-border);
+  background: var(--tx-surface);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: none;
+  transition: background .15s ease, border-color .15s ease, transform .05s ease, color .15s ease;
+}
+.main[data-mode="tasks"] .Chip:hover{ background: var(--tx-surface-2); }
+.main[data-mode="tasks"] .Chip:active{ transform: translateY(1px); }
+.main[data-mode="tasks"] .Chip[aria-pressed="true"]{
+  background: var(--tx-accent);
+  border-color: var(--tx-accent);
+  color: #fff;
+}
+
+/* Date range row */
+.main[data-mode="tasks"] .DateRange{ display: flex; gap: 8px; flex-wrap: wrap; }
+.main[data-mode="tasks"] .DateRange input[type="date"]{
+  height: 38px;
+  border: 1.5px solid var(--tx-border);
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: var(--tx-surface);
+  font: inherit;
+  color: inherit;
+}
+
+/* Right view toggle → segmented tabs echoing topBar .tab style */
+.main[data-mode="tasks"] .TasksTabs{
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: transparent;
+  border: 2px solid var(--tx-border);
+}
+.main[data-mode="tasks"] .TasksTabs button{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--tx-ink);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 900;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  font-family: inherit;
+}
+.main[data-mode="tasks"] .TasksTabs button[aria-pressed="true"]{
+  background: var(--tx-accent);
+  color: #fff;
+}
+.main[data-mode="tasks"] .TasksTabs button:focus-visible{ outline: 2px solid #111; outline-offset: 2px; }
+
+/* Content spacer under filters (small) */
+.main[data-mode="tasks"] .TasksContent{ margin-top: 12px; }
+
+/* ---------- List ---------- */
+.main[data-mode="tasks"] .TasksList{ display: grid; gap: 12px; }
+
+/* Card row; first column reserved for ToggleButton */
+.main[data-mode="tasks"] .TaskRow{
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 1.5px solid var(--tx-border);
+  border-radius: var(--tx-radius);
+  padding: 12px 14px;
+  background: var(--tx-surface);
+  box-shadow: var(--tx-shadow);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.main[data-mode="tasks"] .TaskRow:hover{ transform: translateY(-1px); }
+.main[data-mode="tasks"] .TaskRow:focus-within{ box-shadow: 0 0 0 3px var(--tx-ring), var(--tx-shadow); }
+
+/* Assume ToggleButton renders a button; normalize size if needed */
+.main[data-mode="tasks"] .TaskRow > :first-child{
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+}
+
+/* Title + meta */
+.main[data-mode="tasks"] .TaskTitle{ min-width: 0; display: grid; gap: 4px; }
+.main[data-mode="tasks"] .TaskTitle input{
+  width: 100%; border: 0; background: transparent; outline: none;
+  font-weight: 700; font-size: clamp(14px, 2vw, 16px); padding: 0; color: var(--tx-ink);
+}
+.main[data-mode="tasks"] .TaskTitle input[disabled]{ color: var(--tx-muted); text-decoration: line-through; }
+.main[data-mode="tasks"] .TaskMeta{ font-size: 12px; color: var(--tx-muted); }
+
+/* Buttons → echo App.css (bold, rounded); neutral by default, accent on hover/focus */
+.main[data-mode="tasks"] .TaskActions{ display: inline-flex; gap: 8px; }
+.main[data-mode="tasks"] .btn{
+  border: 1.5px solid var(--tx-border);
+  background: var(--tx-surface);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  letter-spacing: .02em;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .05s ease;
+}
+.main[data-mode="tasks"] .btn:hover{
+  border-color: var(--tx-accent);
+  background: var(--tx-surface-2);
+}
+.main[data-mode="tasks"] .btn:active{ transform: translateY(1px); }
+.main[data-mode="tasks"] .btn[disabled]{ opacity: .55; cursor: default; }
+
+/* ---------- Eisenhower board ---------- */
+.main[data-mode="tasks"] .Board{ display: grid; grid-template-columns: 1fr; gap: var(--tx-gap-lg); }
+@media (min-width: 720px){
+  .main[data-mode="tasks"] .Board{ grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+}
+.main[data-mode="tasks"] .Quad{
+  border: 1.5px dashed var(--tx-border);
+  border-radius: var(--tx-radius);
+  padding: 12px;
+  background: var(--tx-surface);
+  min-height: 180px;
+}
+.main[data-mode="tasks"] .QuadTitle{ font-weight: 900; margin-bottom: 8px; letter-spacing: .02em; }
+.main[data-mode="tasks"] .Card{
+  border: 1.5px solid var(--tx-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 8px 0;
+  background: #fcfcfc;
+  cursor: grab;
+}
+.main[data-mode="tasks"] .Card:active{ cursor: grabbing; }
+
+/* Empty state */
+.main[data-mode="tasks"] .InlineHelp{ font-size: 12px; color: var(--tx-muted); padding: 12px; }
+
+/* ---------- Dark mode ---------- */
+@media (prefers-color-scheme: dark){
+  .main[data-mode="tasks"] .TasksRoot{
+    --tx-border:#374151; --tx-muted:#9ca3af; --tx-ink:#e5e7eb;
+    --tx-surface:#0b0f19; --tx-surface-2:#0f1422; --tx-shadow:0 6px 16px rgba(0,0,0,.35);
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .main[data-mode="tasks"] .TaskRow,
+  .main[data-mode="tasks"] .btn{ transition: none; }
+}

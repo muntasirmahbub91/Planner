@@ -1,0 +1,35 @@
+/* src/lib/LazyMount.module.css
+ *
+ * Controls:
+ *  - Wrapper visibility
+ *  - Enter/exit animations
+ *  - Mount/unmount fade
+ */
+
+/* Wrapper container */
+.wrapper {
+  display: contents; /* keep DOM lean */
+}
+
+/* Fade in/out transitions for mount/unmount */
+.enter {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.enterActive {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.exitActive {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}

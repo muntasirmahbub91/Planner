@@ -1,0 +1,21 @@
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8);
+  border: 1px solid #ddd;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface, #fff);
+  box-shadow: var(--shadow-1);
+  margin-bottom: var(--space-8);
+}
+
+.text {
+  flex: 1;
+  font-weight: 500;
+  font-family: var(--font-heading, Montserrat, sans-serif);
+}
+
+.actions {
+  margin-left: var(--space-8);
+}

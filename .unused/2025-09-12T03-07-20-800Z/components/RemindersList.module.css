@@ -1,0 +1,66 @@
+/* src/components/RemindersList.module.css
+ * Controls:
+ *  - List height: --list-max-h
+ *  - Spacing:     --space-*
+ *  - Colors:      --color-*
+ *  - Row states:  .done
+ */
+
+:root {
+  --list-max-h: 40vh;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8, 8px);
+  max-height: var(--list-max-h);
+  overflow: auto;
+  padding-right: 2px; /* keeps scrollbar off edge */
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  padding: var(--space-8, 8px);
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text, #222);
+  font-size: 0.95rem;
+}
+
+.when {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip-bg, #f2f2f2);
+  border: 1px solid var(--color-border, #e5e5e5);
+  font-size: 0.8rem;
+  color: var(--color-text, #333);
+}
+
+.actions {
+  display: inline-flex;
+  gap: var(--space-6, 6px);
+}
+
+.done .text {
+  color: var(--color-muted, #888);
+  text-decoration: line-through;
+  opacity: 0.8;
+}

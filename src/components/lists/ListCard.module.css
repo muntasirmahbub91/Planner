@@ -1,0 +1,25 @@
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:16px;box-shadow:0 1px 4px rgba(0,0,0,.04);padding:14px;display:flex;flex-direction:column;gap:12px}
+.titleRow{display:flex;align-items:center;gap:8px}
+.title{font-weight:700;font-size:16px;flex:1;min-width:0}
+.titleInput{flex:1;font:inherit;border:1px solid #ddd;border-radius:8px;padding:6px 8px}
+.iconBtn{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:8px}
+.iconBtn:hover{background:#f4f4f4}
+.sep{height:1px;background:#eee}
+
+.addRow{display:flex;gap:8px}
+.addInput{flex:1;border:1px solid #ddd;border-radius:8px;padding:8px}
+.addBtn{border:0;background:#0b0b0b;color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer}
+.addBtn:disabled{opacity:.5;cursor:not-allowed}
+
+.items{display:flex;flex-direction:column;gap:4px}
+.itemRow{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:8px}
+.itemRow:hover{background:#fafafa}
+.cb{width:18px;height:18px}
+.itemText{flex:1;min-width:0;word-break:break-word}
+.itemTextDone{text-decoration:line-through;opacity:.6}
+.itemInput{flex:1;border:1px solid #ddd;border-radius:8px;padding:6px 8px}
+.smallBtn{border:0;background:transparent;cursor:pointer;padding:4px;border-radius:6px}
+.smallBtn:hover{background:#f1f1f1}
+.footerRow{display:flex;justify-content:flex-end;gap:8px}
+.clearBtn{border:1px solid #ddd;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+.clearBtn:hover{background:#fafafa}

@@ -1,0 +1,50 @@
+/* src/components/AddReminderBar.module.css
+ * Controls: inline add form layout, input sizing, button look
+ */
+
+.bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-8, 8px);
+  align-items: center;
+  padding: var(--space-10, 10px);
+  background: var(--color-surface, #fafafa);
+  border-top: 1px solid var(--color-border, #ddd);
+  border-bottom: 1px solid var(--color-border, #ddd);
+}
+
+.input {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: var(--radius-small, 6px);
+  font: inherit;
+  background: #fff;
+  color: var(--color-text, #111);
+}
+
+.date {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: var(--radius-small, 6px);
+  background: #fff;
+  font: inherit;
+}
+
+.button {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border, #ddd);
+  background: var(--color-brand, #E29612);
+  color: #fff;
+  cursor: pointer;
+}
+
+.button:hover { filter: brightness(0.95); }
+
+@media (max-width: 640px) {
+  .bar { grid-template-columns: 1fr 1fr; }
+  .date { grid-column: span 1; }
+  .button { grid-column: span 2; }
+}

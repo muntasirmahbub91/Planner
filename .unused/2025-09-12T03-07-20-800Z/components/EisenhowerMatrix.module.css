@@ -1,0 +1,25 @@
+/* src/components/EisenhowerMatrix.module.css */
+.matrix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--space-16, 16px);
+}
+
+.cell {
+  border: 1px solid #e6e6e6;
+  border-radius: var(--radius-medium, 12px);
+  background: var(--surface, #fff);
+  padding: var(--space-12, 12px);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8, 8px);
+}
+
+.hdr {
+  font-weight: 700;
+  font-family: var(--font-heading, Montserrat, sans-serif);
+  font-size: 14px;
+  color: #333;
+}

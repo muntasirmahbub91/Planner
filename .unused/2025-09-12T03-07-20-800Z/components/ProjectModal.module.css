@@ -1,0 +1,83 @@
+/* src/components/ProjectModal.module.css */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12, 12px);
+  min-width: 360px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--muted, #555);
+}
+
+.input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+}
+
+.toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subhdr {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.subempty {
+  font-size: 13px;
+  color: var(--muted, #666);
+}
+
+.subrow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.subinput {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+}
+
+.remove {
+  padding: 4px 8px;
+}
+
+.addRow {
+  align-self: start;
+  padding: 4px 10px;
+}
+
+.error {
+  color: var(--err, #d33);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8, 8px);
+  margin-top: var(--space-4, 4px);
+}

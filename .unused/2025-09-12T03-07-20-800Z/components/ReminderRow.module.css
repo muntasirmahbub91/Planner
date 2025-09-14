@@ -1,0 +1,75 @@
+/* src/components/ReminderRow.module.css
+ *
+ * Controls:
+ *  - Row layout
+ *  - Checkbox slot
+ *  - Reminder text and metadata
+ *  - Due chip
+ *  - Actions
+ *  - Done state
+ */
+
+/* Container for a single reminder row */
+.row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto; /* checkbox | text/meta | actions */
+  align-items: center;
+  gap: var(--space-8, 8px);
+  padding: var(--space-8, 8px);
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0,0,0,0.06));
+}
+
+/* Left slot: toggle or checkbox */
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Middle column: text + meta stacked */
+.textCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* allows ellipsis */
+}
+
+.title {
+  font-size: 0.95rem;
+  color: var(--color-text, #222);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--color-muted, #777);
+}
+
+/* Due chip on right side */
+.due {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip-bg, #f2f2f2);
+  border: 1px solid var(--color-border, #e5e5e5);
+  font-size: 0.8rem;
+  color: var(--color-text, #333);
+}
+
+/* Actions (e.g. edit/delete buttons) */
+.actions {
+  display: flex;
+  gap: var(--space-6, 6px);
+  margin-left: var(--space-6, 6px);
+}
+
+/* Done state */
+.done .title {
+  text-decoration: line-through;
+  color: var(--color-muted, #888);
+  opacity: 0.8;
+}

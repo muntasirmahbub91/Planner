@@ -1,0 +1,35 @@
+/* Remove pill/box from nav chevrons while keeping arrows visible */
+button[aria-label*="Previous"],
+button[aria-label*="Next"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: #0f172a;
+  opacity: 0.9;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+}
+button[aria-label*="Previous"]:hover,
+button[aria-label*="Next"]:hover {
+  opacity: 1;
+}
+button[aria-label*="Previous"]:focus,
+button[aria-label*="Next"]:focus {
+  outline: none;
+}
+
+/* Chevron sizing */
+button[aria-label*="Previous"],
+button[aria-label*="Next"] {
+  font-size: 24px !important;   /* enlarge text chevrons ‹ › */
+  line-height: 1;
+}
+button[aria-label*="Previous"] svg,
+button[aria-label*="Next"] svg {
+  width: 24px;                   /* enlarge SVG chevrons if used */
+  height: 24px;
+}

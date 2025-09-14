@@ -1,0 +1,84 @@
+/* src/components/ProjectTasksList.module.css */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12, 12px);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-8, 8px);
+  align-items: center;
+}
+
+.filters {
+  display: inline-flex;
+  gap: var(--space-8, 8px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+  background: #fff;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--muted, #666);
+}
+
+.addRow {
+  display: grid;
+  grid-template-columns: 180px 1fr auto auto;
+  gap: var(--space-8, 8px);
+  align-items: center;
+}
+
+.input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+  min-width: 0;
+}
+
+.preview {
+  font-size: 12px;
+  color: var(--muted, #666);
+  background: #fafafa;
+  border: 1px dashed #e5e5e5;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.error {
+  color: var(--err, #d33);
+  font-size: 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8, 8px);
+}
+
+.empty {
+  color: var(--muted, #666);
+  text-align: center;
+  padding: var(--space-12, 12px);
+  border: 1px dashed #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.missing {
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+}

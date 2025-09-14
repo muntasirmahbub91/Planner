@@ -1,0 +1,70 @@
+/* ToggleButton: robust circular control */
+.ui-ToggleButton {
+  --tgl-size: 32px;
+  --tgl-hit: 44px;
+  --tgl-off-bg: #e5e7eb;
+  --tgl-off-border: #cbd5e1;
+  --tgl-on-bg: #16a34a;
+  --tgl-ring: rgba(22,163,74,.45);
+  --tgl-t: 140ms ease;
+}
+
+/* Hit area wrapper keeps big tap target without visual deformation */
+.ui-ToggleButton__hit {
+  display: inline-flex;
+  vertical-align: middle;
+  padding: calc((max(var(--tgl-hit), var(--tgl-size)) - var(--tgl-size)) / 2);
+  line-height: 0;
+}
+
+/* The visual circle */
+.ui-ToggleButton {
+  box-sizing: border-box;
+  width: var(--tgl-size);
+  height: var(--tgl-size);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1px solid var(--tgl-off-border);
+  background: var(--tgl-off-bg);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  outline: none;
+  color: transparent; /* icon uses currentColor when on */
+  line-height: 0;     /* prevent inline baseline stretch */
+  vertical-align: middle;
+  transition: background var(--tgl-t), border-color var(--tgl-t), transform var(--tgl-t);
+  -webkit-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+}
+
+.ui-ToggleButton.is-on {
+  background: var(--tgl-on-bg);
+  border-color: var(--tgl-on-bg);
+  color: #fff;
+}
+
+.ui-ToggleButton__icon {
+  width: calc(var(--tgl-size) * 0.58);
+  height: calc(var(--tgl-size) * 0.58);
+  display: block;
+  opacity: 0;
+  transform: scale(.92);
+  transition: opacity var(--tgl-t), transform var(--tgl-t);
+}
+
+.ui-ToggleButton.is-on .ui-ToggleButton__icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ui-ToggleButton:active { transform: translateY(1px); }
+.ui-ToggleButton:focus-visible { box-shadow: 0 0 0 3px var(--tgl-ring); }
+.ui-ToggleButton:disabled { opacity: .45; cursor: default; }
+
+/* Screen-reader only text */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

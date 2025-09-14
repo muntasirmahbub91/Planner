@@ -1,0 +1,17 @@
+/* Identify the composer by the title input; enable wrapping layout */
+form:has(input[placeholder^="Task title"]),
+div:has(input[placeholder^="Task title"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Second-row actions */
+.task-composer__actions {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}

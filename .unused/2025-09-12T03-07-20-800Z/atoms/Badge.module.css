@@ -1,0 +1,46 @@
+/* src/atoms/Badge.module.css */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid var(--color-border, #e5e5e5);
+  background: var(--chip-bg, #f2f2f2);
+  color: var(--color-text, #333);
+}
+
+.ok {
+  background: rgba(33, 163, 102, 0.12);
+  border-color: rgba(33, 163, 102, 0.24);
+  color: #137a54;
+}
+
+.warn {
+  background: rgba(255, 193, 7, 0.16);
+  border-color: rgba(255, 193, 7, 0.28);
+  color: #8a6d00;
+}
+
+.err {
+  background: rgba(217, 48, 37, 0.14);
+  border-color: rgba(217, 48, 37, 0.26);
+  color: #8f2018;
+}
+
+.info {
+  background: rgba(3, 102, 214, 0.12);
+  border-color: rgba(3, 102, 214, 0.24);
+  color: #0f4aa1;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}

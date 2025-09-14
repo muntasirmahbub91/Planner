@@ -1,0 +1,241 @@
+/* src/components/CalendarGrid.module.css
+ *
+ * Sections:
+ *  1) Tokens and density controls
+ *  2) Grid wrapper and header row
+ *  3) Day cells (base)
+ *  4) Day cells (states: today, selected, range, outside)
+ *  5) Content regions inside a cell (header, meta, events)
+ *  6) Event chips / pills
+ *  7) Interactions and a11y focus
+ *  8) Responsive tweaks
+ *
+ * Controllable via tokens/classes:
+ *  - Spacing:        --space-2/4/6/8/10/12/16, --calendar-cell-gap, --calendar-cell-pad
+ *  - Radius:         --radius-small, --radius-medium
+ *  - Colors:         --color-bg, --color-surface, --color-border, --color-text,
+ *                     --color-muted, --color-brand, --color-ok, --color-warn, --color-err, --chip-bg
+ *  - Shadows:        --shadow-1, --shadow-2, --shadow-inset
+ *  - Typography:     font-family, font-size scales below
+ *  - Density:        .dense | .comfortable | .spacious on .grid
+ *  - States:         .isToday .isSelected .inRange .rangeStart .rangeEnd .isOutsideMonth
+ */
+
+/* -----------------------------------------
+ * 1) Tokens and density controls
+ * -------------------------------------- */
+
+:root {
+  /* Defaults if not provided by tokens.css */
+  --calendar-cell-min-h: 96px;
+  --calendar-cell-min-h-dense: 76px;
+  --calendar-cell-min-h-spacious: 124px;
+
+  --calendar-cell-gap: var(--space-4, 4px);
+  --calendar-cell-pad: var(--space-6, 6px);
+
+  --shadow-inset: inset 0 0 0 2px rgba(0,0,0,0.04);
+}
+
+.grid.dense  .cell { min-height: var(--calendar-cell-min-h-dense); }
+.grid.spacious .cell { min-height: var(--calendar-cell-min-h-spacious); }
+
+/* -----------------------------------------
+ * 2) Grid wrapper and header row
+ * -------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--calendar-cell-gap);
+  background: var(--color-surface, #fafafa);
+  padding: var(--space-8, 8px);
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+}
+
+.weekdays {
+  display: contents; /* keeps 7-column alignment */
+}
+
+.weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* -----------------------------------------
+ * 3) Day cells (base)
+ * -------------------------------------- */
+
+.cell {
+  min-height: var(--calendar-cell-min-h);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 4px);
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-small, 6px);
+  padding: var(--calendar-cell-pad);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0,0,0,0.06));
+  position: relative;
+}
+
+.cell:hover {
+  box-shadow: var(--shadow-2, 0 3px 10px rgba(0,0,0,0.06));
+}
+
+/* -----------------------------------------
+ * 4) Day cells (states)
+ * -------------------------------------- */
+
+.isToday {
+  border-color: var(--color-brand, #E29612);
+  box-shadow: inset 0 0 0 2px var(--color-brand, #E29612);
+}
+
+.isSelected {
+  outline: 2px solid var(--color-brand, #E29612);
+  outline-offset: -2px;
+}
+
+.inRange {
+  background: linear-gradient(
+    to bottom,
+    rgba(226,150,18,0.05),
+    rgba(226,150,18,0.03)
+  );
+}
+
+.rangeStart {
+  box-shadow: var(--shadow-inset), inset 2px 0 0 0 var(--color-brand, #E29612);
+}
+
+.rangeEnd {
+  box-shadow: var(--shadow-inset), inset -2px 0 0 0 var(--color-brand, #E29612);
+}
+
+.isOutsideMonth {
+  opacity: 0.55;
+}
+
+/* -----------------------------------------
+ * 5) Content regions inside a cell
+ * -------------------------------------- */
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6, 6px);
+}
+
+.dayNumber {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text, #222);
+}
+
+.badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6, 6px);
+  color: var(--color-muted, #777);
+  font-size: 0.75rem;
+}
+
+.events {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 2px);
+  overflow: hidden; /* hide long lists gracefully */
+}
+
+/* -----------------------------------------
+ * 6) Event chips / pills
+ * -------------------------------------- */
+
+.event {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: var(--space-4, 4px);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip-bg, #f2f2f2);
+  color: var(--color-text, #333);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event--ok    { background: rgba(33,163,102,0.12); color: #137a54; }
+.event--warn  { background: rgba(255,193,7,0.16); color: #8a6d00; }
+.event--err   { background: rgba(217,48,37,0.14); color: #8f2018; }
+.event--brand { background: rgba(226,150,18,0.16); color: #7a4a0b; }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 6px;
+}
+
+/* -----------------------------------------
+ * 7) Interactions and a11y focus
+ * -------------------------------------- */
+
+.cellButton {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  /* keep click layer above content but let content be visible */
+  z-index: 1;
+}
+
+.cellButton:focus-visible {
+  outline: 2px solid var(--color-brand, #E29612);
+  outline-offset: -4px;
+}
+
+/* allow content above the button */
+.cell > * { position: relative; z-index: 2; }
+
+/* -----------------------------------------
+ * 8) Responsive tweaks
+ * -------------------------------------- */
+
+@media (max-width: 920px) {
+  .weekday { font-size: 0.7rem; }
+  .dayNumber { font-size: 0.85rem; }
+  .event { font-size: 0.7rem; padding: 2px 6px; }
+}
+
+@media (max-width: 720px) {
+  .grid { gap: var(--space-2, 2px); padding: var(--space-6, 6px); }
+  .cell { padding: var(--space-4, 4px); }
+  .meta { display: none; }
+}
+
+@media (max-width: 520px) {
+  .weekday { display: none; }           /* hide header row if cramped */
+  .dayNumber { font-size: 0.8rem; }
+  .event { max-width: 100%; }
+}

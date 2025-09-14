@@ -1,0 +1,35 @@
+/* src/components/AddProjectBar.module.css
+ * Controls:
+ *  - Input bar for adding a new project
+ *  - Layout of input and button
+ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  padding: var(--space-10, 10px);
+  background: var(--color-surface, #fafafa);
+  border-top: 1px solid var(--color-border, #ddd);
+}
+
+.input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: var(--radius-small, 6px);
+  font: inherit;
+}
+
+.button {
+  padding: 8px 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border, #ddd);
+  background: var(--color-brand, #E29612);
+  color: #fff;
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(0.95);
+}

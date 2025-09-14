@@ -1,0 +1,7 @@
+.wrap {
+  background: #f1f5f9;            /* light banner */
+  border: 1px solid #e5e7eb;      /* subtle edge */
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin: 6px 0 16px 0;           /* small gap from top bar, space below */
+}

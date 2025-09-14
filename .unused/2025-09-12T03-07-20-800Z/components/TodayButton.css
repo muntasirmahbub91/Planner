@@ -1,0 +1,32 @@
+/* Orange TODAY pill */
+.TodayBtn {
+  --today-bg: #E29612;
+  --today-bg-hover: #c77f0d;
+  --today-ring: rgba(226,150,18,.45);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--today-bg);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+@media(hover:hover){
+  .TodayBtn:hover { background: var(--today-bg-hover); transform: translateY(-1px); }
+}
+.TodayBtn:active { transform: translateY(0) scale(.97); }
+.TodayBtn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--today-ring); }
+
+.TodayBtn__dot {
+  display:inline-block; width:8px; height:8px; border-radius:50%; background:#fff; opacity:.9;
+}

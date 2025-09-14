@@ -1,0 +1,63 @@
+/* src/components/ViewSlot.module.css
+ *
+ * Controls:
+ *  - Container sizing
+ *  - Padding and background
+ *  - Animation for transitions
+ *  - Empty state
+ */
+
+/* Root container for the active view */
+.slot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg, #fff);
+  position: relative;
+}
+
+/* Content area inside the slot */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-16, 16px);
+  overflow-y: auto;
+}
+
+/* Optional animation for switching views */
+.fadeEnter {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.fadeEnterActive {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.fadeExit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fadeExitActive {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+/* Empty state placeholder */
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted, #777);
+  font-size: 0.9rem;
+  font-style: italic;
+}

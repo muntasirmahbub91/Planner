@@ -1,0 +1,46 @@
+/* src/components/JournalEntryEditor.module.css
+ * Controls: editor layout, textarea sizing, toolbar spacing
+ */
+
+.editor {
+  display: grid;
+  gap: var(--space-12, 12px);
+  padding: var(--space-16, 16px);
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-family: Montserrat, sans-serif;
+  font-weight: 600;
+  color: var(--color-text, #111);
+}
+
+.controls {
+  display: inline-flex;
+  gap: var(--space-8, 8px);
+}
+
+.textarea {
+  min-height: 220px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: var(--radius-small, 6px);
+  font: inherit;
+  color: var(--color-text, #111);
+  background: #fff;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8, 8px);
+}

@@ -1,0 +1,2 @@
+.TodayFloat{position:fixed;top:14px;right:14px;z-index:40}
+@media (max-width:640px){.TodayFloat{top:8px;right:8px}}

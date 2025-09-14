@@ -1,0 +1,151 @@
+/* ===== Global Theme (target look) ===== */
+:root{
+  --brand-orange:#E29612;
+  --brand-orange-d:#c77f0d;
+  --ink:#0b0b0b;
+  --muted:#6b7280;
+  --line:#dddddd;
+  --bg:#ffffff;
+
+  --green:#16a34a;
+  --green-d:#15803d;
+
+  --radius-ctl:12px;
+  --radius-pill:9999px;
+
+  --space-4:4px; --space-6:6px; --space-8:8px; --space-12:12px; --space-16:16px; --space-20:20px; --space-24:24px;
+}
+
+*{box-sizing:border-box}
+
+html,body,#root{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
+/* Brand title */
+.app-Header .brand,
+.app-header .brand,
+.brand-title{
+  font-family:Montserrat,Inter,system-ui,sans-serif;
+  font-weight:900;
+  letter-spacing:.02em;
+  font-size:28px;
+  line-height:1;
+}
+
+/* Top tabs: DAY/WEEK/MONTH/YEAR */
+.NavBar,
+.navbar,
+.tabs{
+  display:flex;
+  gap:18px;
+  align-items:flex-end;
+  border-bottom:1px solid var(--line);
+  padding:10px 0 12px;
+}
+.NavBar .tab,
+.tabs .tab,
+.navbar .tab{
+  position:relative;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.02em;
+  padding:10px 14px;
+  border-radius:10px;
+  line-height:1;
+  cursor:pointer;
+}
+.NavBar .tab.active,
+.tabs .tab.active,
+.navbar .tab.active{
+  background:var(--brand-orange);
+  color:#fff;
+  border-radius:12px;
+}
+.NavBar::after,
+.tabs::after,
+.navbar::after{
+  content:"";
+  position:relative;
+  display:block;
+  height:0;
+  border-bottom:1px solid var(--line);
+}
+
+/* Large date banner with chevrons */
+.DateStrip,
+.date-strip{
+  display:grid;
+  grid-template-columns:48px 1fr 48px;
+  align-items:center;
+  gap:8px;
+  background:#efefef;
+  padding:10px 14px;
+  border-radius:6px;
+  margin:12px 0 8px;
+}
+.DateStrip__title,
+.date-strip .title{
+  text-align:center;
+  font-family:Montserrat,Inter,sans-serif;
+  font-weight:900;
+  font-size:28px;
+  line-height:1.1;
+}
+.DateStrip__sub,
+.date-strip .sub{
+  display:block;
+  margin-top:2px;
+  font-size:12px;
+  letter-spacing:.04em;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+.DateStrip__chev,
+.date-strip .chev{
+  display:inline-grid;place-items:center;
+  width:36px;height:36px;border-radius:50%;
+  background:transparent;border:none;cursor:pointer;
+  font-size:22px;
+}
+
+/* Section headers: TASKS / REMINDERS / HABITS */
+.section-title,
+.AddTaskBar__title{
+  font-family:Montserrat,Inter,sans-serif;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+}
+
+/* Use universal AddButton look for colored plus in headers (green for tasks; orange for reminders if themed) */
+.theme-orange .ui-AddButton{ background:var(--brand-orange); }
+.theme-orange .ui-AddButton:hover{ background:var(--brand-orange-d); }
+
+/* Habits card area */
+.habits-card{
+  background:#fafaf1;
+  border:1px solid #f0f0e2;
+  border-radius:8px;
+  padding:16px;
+}
+
+/* BottomBar black pill */
+.BottomBar,
+.bottom-bar{
+  position:sticky; bottom:12px;
+  display:flex; gap:14px; align-items:center; justify-content:center;
+  background:#0b0b0b; color:#fff;
+  border-radius:30px; padding:12px 16px; width:fit-content; margin:24px auto 0;
+}
+.BottomBar .btn, .bottom-bar .btn{
+  background:transparent; color:#fff; border:none; cursor:pointer;
+  padding:8px 12px; border-radius:10px; font-weight:700;
+}
+.BottomBar .btn.active, .bottom-bar .btn.active{
+  background:#111; border-bottom:2px solid #fff;
+}
+
+/* Minor utilities */
+.mono{font-variant-numeric:tabular-nums}
+.center{display:grid;place-items:center}
+.upper{ text-transform:uppercase }

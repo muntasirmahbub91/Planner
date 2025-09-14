@@ -1,0 +1,63 @@
+/* src/components/TaskListFilters.module.css
+ * Controls:
+ *  - Grid vs wrap: .grid, .wrap
+ *  - Active filter: .active
+ *  - Sizes: --space-*, pill padding
+ */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6, 6px);
+  align-items: center;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--space-6, 6px);
+  align-items: center;
+}
+
+.filter {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #ddd);
+  background: #fff;
+  color: var(--color-text, #111);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.filter:hover {
+  background: var(--color-hover, #f5f5f5);
+}
+
+.active {
+  border-color: var(--color-brand, #E29612);
+  background: rgba(226,150,18,0.12);
+}
+
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6, 6px);
+}
+
+.input {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #ccc);
+  background: #fff;
+  font: inherit;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-brand, #E29612);
+  outline-offset: 1px;
+}

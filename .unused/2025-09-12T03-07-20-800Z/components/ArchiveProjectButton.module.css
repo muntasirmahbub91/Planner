@@ -1,0 +1,31 @@
+/* src/components/ArchiveProjectButton.module.css
+ * Controls: shape, colors for active/archived states
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border, #ddd);
+  background: #fff;
+  color: var(--color-text, #111);
+  cursor: pointer;
+}
+
+.btn:hover { background: var(--color-hover, #f5f5f5); }
+
+.archive {
+  background: var(--color-err, #d93025);
+  border-color: var(--color-err, #d93025);
+  color: #fff;
+}
+
+.unarchive {
+  background: var(--color-ok, #21a366);
+  border-color: var(--color-ok, #21a366);
+  color: #fff;
+}
+
+.icon { width: 16px; height: 16px; }

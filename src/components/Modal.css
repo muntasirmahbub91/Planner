@@ -1,0 +1,43 @@
+.modalOverlay{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.35); backdrop-filter:saturate(1.1) blur(2px);
+  z-index:2000;
+
+  /* safer on phones with notches */
+  padding: max(env(safe-area-inset-top),20px)
+           max(env(safe-area-inset-right),20px)
+           max(env(safe-area-inset-bottom),20px)
+           max(env(safe-area-inset-left),20px);
+
+  overscroll-behavior:contain; /* block background scroll chaining */
+}
+
+.modalCard{
+  position:relative;
+  width:min(92vw, var(--frame-max, 520px));
+  max-height:min(90dvh, 640px); /* tall content stays inside */
+  background:#fff; border-radius:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);
+  border:1px solid #ececec;
+  padding:16px 16px 20px;
+
+  overflow:auto;                    /* scroll inside the card */
+  -webkit-overflow-scrolling:touch; /* smooth iOS scrolling */
+  outline:0;
+}
+.modalCard:focus{ outline:2px solid #222; outline-offset:2px }
+
+.modalTitle{margin:0 0 10px; font-weight:900; font-size:22px}
+.modalBody{display:grid; gap:12px} /* nicer spacing for form rows */
+
+.modalClose{
+  position:absolute; top:10px; right:10px;
+  appearance:none; border:1px solid #e5e7eb; background:#fff; cursor:pointer;
+  width:36px; height:36px; border-radius:10px;
+}
+.modalClose:focus-visible{ outline:2px solid #222; outline-offset:2px }
+
+@media (prefers-reduced-motion: reduce){
+  .modalOverlay{ backdrop-filter:none }
+}

@@ -1,0 +1,21 @@
+/* src/components/CalendarRangeFilter.module.css */
+.row {
+  display: flex;
+  gap: var(--space-8, 8px);
+  align-items: center;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--muted, #555);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.input {
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+}

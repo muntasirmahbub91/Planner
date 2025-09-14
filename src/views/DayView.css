@@ -1,0 +1,49 @@
+/* DayView • spacing + banner */
+:root{
+  --dayview-gap:40px;
+  --day-banner-bg:#f3f4f6;
+  --day-banner-br:14px;
+}
+
+/* Primary spacing */
+.scroll{ gap:var(--dayview-gap) !important }
+
+/* Fallback spacing between stacked blocks */
+:where(#root,main,.scroll,.day-view,.dayview,.content,.page)>
+:is(section,.section,.tasks-section,.reminders-window,.dayrem-list,.habits-section,.habitBox,.habits)+
+:is(section,.section,.tasks-section,.reminders-window,.dayrem-list,.habits-section,.habitBox,.habits){
+  margin-top:var(--dayview-gap) !important;
+}
+
+/* Avoid double spacing when gap applies */
+.scroll>*+*{ margin-top:0 }
+
+/* Safety margins outside sibling flow */
+.tasks-section{ margin-top:var(--dayview-gap) }
+.reminders-window,.dayrem-list{ margin-top:var(--dayview-gap) }
+.habits-section,.habitBox,.habits{ margin-top:var(--dayview-gap) }
+
+/* Banner chevrons */
+.DateBanner--day .DateBanner__chev{
+  background:transparent !important; border:0 !important; box-shadow:none !important;
+  width:32px; height:32px; padding:0; display:inline-grid; place-items:center; color:inherit;
+}
+.DateBanner--day .DateBanner__chev:hover,
+.DateBanner--day .DateBanner__chev:active{ background:transparent !important; transform:none !important }
+.DateBanner--day .DateBanner__chev:focus{ outline:none !important }
+.DateBanner--day .DateBanner__chev:focus-visible{ outline:2px solid #222; outline-offset:2px }
+
+/* Titles */
+.DateBanner--day .DateBanner__titles{ display:grid; align-content:center; justify-items:center; text-align:center }
+.DateBanner--day .DateBanner__title,
+.DateBanner--day .DateBanner__subtitle{ margin:0; line-height:1.2 }
+
+/* Banner */
+.DateBanner--day{
+  display:grid; grid-template-columns:40px 1fr 40px; align-items:center; gap:8px;
+  padding:12px 14px; min-height:64px;
+  background:var(--day-banner-bg);
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:var(--day-banner-br);
+  box-shadow:0 1px 0 #eeecec inset, 0 8px 20px rgba(0,0,0,.06);
+}

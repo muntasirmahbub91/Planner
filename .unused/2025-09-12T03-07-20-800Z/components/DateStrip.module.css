@@ -1,0 +1,24 @@
+/* src/components/DateStrip.module.css */
+
+.strip {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  height: 48px;
+  border-bottom: 1px solid var(--color-border, #ddd);
+  background: var(--color-surface, #fafafa);
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dateLabel {
+  text-align: center;
+  font-weight: 600;
+  font-family: Montserrat, sans-serif;
+  font-size: 0.95rem;
+  color: var(--color-text, #111);
+}

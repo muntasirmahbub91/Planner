@@ -1,0 +1,112 @@
+:root{
+  --dc-gap:10px;
+  --dc-pad-y:10px;
+  --dc-pad-x:12px;
+  --dc-border:#eeeeee;
+  --dc-border-hover:#e5e7eb;
+  --dc-bg:#ffffff;
+  --dc-title:#0b0b0b;
+  --dc-muted:#6b7280;
+
+  --dc-peach:#ffd3b8;        /* left pill color */
+  --dc-card-bg:#fcfbfa;      /* right area background */
+  --dc-gold:#e0b324;         /* bullet color */
+  --dc-radius-xl:28px;
+  --dc-radius-lg:20px;
+}
+
+/* ====== Single task row (kept for Day/Week rows) ====== */
+.DayCard{display:block}
+.DayCard__row{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:var(--dc-gap);
+  padding:var(--dc-pad-y) var(--dc-pad-x);
+  border:1px solid var(--dc-border);
+  border-radius:12px;
+  background:var(--dc-bg);
+  min-height:48px;
+}
+.DayCard__row:hover{border-color:var(--dc-border-hover)}
+.DayCard__main{display:grid;gap:2px;min-width:0}
+.DayCard__title{
+  color:var(--dc-title);
+  font-weight:700;
+  letter-spacing:.01em;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.DayCard__titleText{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.DayCard__title--done{opacity:.6;text-decoration:line-through}
+.DayCard__badges{display:inline-flex;gap:6px;flex:0 0 auto}
+.DayCard__badge{
+  display:inline-block;
+  min-width:18px;
+  text-align:center;
+  border:1px solid #d6d6d6;
+  border-radius:999px;
+  padding:0 6px;
+  font-size:11px;
+  line-height:18px;
+  color:var(--dc-muted);
+}
+.DayCard__badge--u{border-color:#d97706;color:#b45309}
+.DayCard__badge--i{border-color:#2563eb;color:#1d4ed8}
+.DayCard__meta{font-size:12px;color:var(--dc-muted)}
+.DayCard__actions{display:flex;gap:6px}
+.DayCard__icon{background:transparent;border:0;cursor:pointer;font-size:16px;line-height:1;padding:6px;border-radius:8px}
+.DayCard__icon:hover{background:#f3f4f6}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ====== Shell variant: matches mock (peach left pill + list on right) ====== */
+.DayCardShell{
+  display:grid;
+  grid-template-columns: 180px 1fr;
+  gap:0;
+  background:var(--dc-card-bg);
+  border-radius:var(--dc-radius-xl);
+  overflow:hidden;
+  border:1px solid #f0efec;
+}
+.DayCardShell__date{
+  background:var(--dc-peach);
+  padding:22px 18px;
+  display:grid;
+  place-items:center;
+  border-radius:var(--dc-radius-xl);
+}
+.DayCardShell__title{
+  text-align:center;
+  font-weight:900;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  line-height:1.1;
+}
+.DayCardShell__title .big{font-size:22px}
+.DayCardShell__title .sub{font-size:12px;opacity:.85;margin-top:4px}
+.DayCardShell__list{
+  padding:18px 20px;
+  display:grid;
+  gap:14px;
+}
+.DayCardShell__item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-weight:600;
+}
+.DayCardShell__dot{
+  width:16px;height:16px;border-radius:9999px;background:var(--dc-gold);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.04);
+}
+@media (max-width:640px){
+  .DayCardShell{grid-template-columns:140px 1fr}
+  .DayCardShell__title .big{font-size:18px}
+}

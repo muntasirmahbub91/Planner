@@ -1,0 +1,5 @@
+/* Ensure the scroll container leaves room for the fixed bottom bar */
+.week-grid-wrap{
+  padding-bottom: calc(var(--bottom-bar-h, 96px) + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: calc(var(--bottom-bar-h, 96px) + env(safe-area-inset-bottom, 0px));
+}

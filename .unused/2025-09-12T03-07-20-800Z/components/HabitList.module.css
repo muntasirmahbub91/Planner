@@ -1,0 +1,23 @@
+/* src/sections/HabitList.module.css
+   HabitList container styles
+   Customize via CSS vars:
+   --habitlist-gap: item gap (default 10px)
+   --habitlist-mt:  top margin
+   --habitlist-mb:  bottom margin
+*/
+
+.list {
+  display: grid;
+  row-gap: var(--habitlist-gap, 10px);
+  margin-top: var(--habitlist-mt, 0);
+  margin-bottom: var(--habitlist-mb, 0);
+}
+
+/* Compact / Spacious presets (optional) */
+.compact  { --habitlist-gap: 6px; }
+.spacious { --habitlist-gap: 14px; }
+
+/* Small screens tweak */
+@media (max-width: 420px) {
+  .list { --habitlist-gap: 8px; }
+}

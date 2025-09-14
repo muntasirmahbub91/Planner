@@ -1,0 +1,107 @@
+/* src/components/ProjectCard.module.css */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12, 12px);
+  border: 1px solid #e6e6e6;
+  border-radius: var(--radius-medium, 12px);
+  background: var(--surface, #fff);
+  padding: var(--space-12, 12px);
+  min-height: 280px;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-8, 8px);
+  align-items: center;
+}
+
+.title {
+  font-weight: 800;
+  font-size: 18px;
+  font-family: var(--font-heading, Montserrat, sans-serif);
+}
+
+.hActions {
+  display: inline-flex;
+  gap: var(--space-8, 8px);
+  align-items: center;
+}
+
+.error {
+  color: var(--err, #d33);
+  font-size: 12px;
+}
+
+.block {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--space-8, 8px);
+  align-items: start;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted, #666);
+}
+
+.value {
+  font-weight: 600;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--muted, #666);
+}
+
+.subList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.subRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #fafafa;
+}
+
+.subText {
+  min-width: 0;
+}
+
+.subRemove {
+  padding: 4px 8px;
+}
+
+.addRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+  margin-top: var(--space-6, 6px);
+}
+
+.input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+}
+
+.missing {
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+  display: grid;
+  gap: 8px;
+}

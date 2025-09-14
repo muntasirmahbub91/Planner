@@ -1,0 +1,17 @@
+/* Fixed top-right TODAY pill anchored to viewport */
+.TodayFloat{position:fixed;top:14px;right:14px;z-index:40}
+@media (max-width:640px){.TodayFloat{top:8px;right:8px}}
+
+/* Orange TODAY button */
+.TodayBtn{
+  --bg:#E29612; --bg-h:#c77f0d; --ring:rgba(226,150,18,.45);
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 14px; border:0; border-radius:9999px;
+  background:var(--bg); color:#fff; font-weight:800; letter-spacing:.02em;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+@media(hover:hover){.TodayBtn:hover{background:var(--bg-h); transform:translateY(-1px)}}
+.TodayBtn:active{transform:translateY(0) scale(.97)}
+.TodayBtn:focus-visible{outline:none; box-shadow:0 0 0 3px var(--ring)}
+.TodayBtn__dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.9}

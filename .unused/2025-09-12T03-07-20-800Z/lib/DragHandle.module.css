@@ -1,0 +1,42 @@
+/* src/lib/DragHandle.module.css
+ *
+ * Controls:
+ *  - Drag handle visibility and hover state
+ *  - Cursor styles
+ *  - Compact sizing
+ */
+
+/* Handle icon area */
+.handle {
+  width: 16px;
+  height: 16px;
+  opacity: 0.4;                /* dim by default */
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+/* Hover/active feedback */
+.handle:hover {
+  opacity: 0.8;
+}
+
+.handle:active {
+  cursor: grabbing;
+  opacity: 1;
+}
+
+/* Larger version (if needed) */
+.large {
+  width: 20px;
+  height: 20px;
+}
+
+/* Compact variant for dense lists */
+.compact {
+  width: 12px;
+  height: 12px;
+  opacity: 0.3;
+}

@@ -1,0 +1,131 @@
+/* src/components/WeeklyCard.module.css
+ *
+ * Controls:
+ *  - Card surface and spacing
+ *  - Header (week label + dates + actions)
+ *  - Body layout for summary metrics
+ *  - Progress bars and chips
+ *  - Footer actions
+ */
+
+/* --- Card surface --- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12, 12px);              /* vertical spacing between sections */
+  padding: var(--space-16, 16px);          /* inner padding */
+  background: #fff;                        /* card background */
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0,0,0,0.06));
+}
+
+/* --- Header: week title + date range + actions --- */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;         /* title left, actions right */
+  align-items: center;
+  gap: var(--space-8, 8px);
+  border-bottom: 1px solid var(--color-border, #eee);
+  padding-bottom: var(--space-8, 8px);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8, 8px);
+}
+
+.weekLabel {
+  font-family: Montserrat, sans-serif;     /* brand heading font */
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text, #222);
+}
+
+.range {
+  font-size: 0.85rem;
+  color: var(--color-muted, #777);         /* lighter date range */
+}
+
+.actions {
+  display: inline-flex;
+  gap: var(--space-6, 6px);
+}
+
+/* --- Body: metrics and status --- */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;          /* two-column summary by default */
+  gap: var(--space-12, 12px);
+}
+
+.metric {
+  display: grid;
+  gap: var(--space-6, 6px);
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  color: var(--color-muted, #666);         /* label color */
+}
+
+.metricValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text, #111);
+}
+
+/* --- Progress bar --- */
+.progress {
+  height: 8px;
+  background: var(--color-border, #eee);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  width: var(--progress, 0%);              /* set via style={{ '--progress': '60%' }} */
+  background: var(--color-brand, #E29612); /* brand color fill */
+}
+
+/* --- Chips for quick statuses (done/remaining etc.) --- */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-6, 6px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #e5e5e5);
+  background: var(--chip-bg, #f2f2f2);
+  font-size: 12px;
+  color: var(--color-text, #333);
+}
+
+.ok    { background: rgba(33,163,102,0.12);  border-color: rgba(33,163,102,0.24);  color: #137a54; }
+.warn  { background: rgba(255,193,7,0.16);   border-color: rgba(255,193,7,0.28);   color: #8a6d00; }
+.err   { background: rgba(217,48,37,0.14);   border-color: rgba(217,48,37,0.26);   color: #8f2018; }
+
+/* --- Footer: buttons or links --- */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8, 8px);
+  padding-top: var(--space-8, 8px);
+  border-top: 1px solid var(--color-border, #eee);
+}
+
+/* --- Responsive tweaks --- */
+@media (max-width: 760px) {
+  .body { grid-template-columns: 1fr; }     /* stack metrics on narrow screens */
+  .weekLabel { font-size: 0.95rem; }
+  .metricValue { font-size: 1.1rem; }
+}

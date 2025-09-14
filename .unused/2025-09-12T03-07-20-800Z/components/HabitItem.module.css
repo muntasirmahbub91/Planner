@@ -1,0 +1,65 @@
+/* src/components/HabitItem.module.css */
+/* ================= TOKENS ================= */
+:root {
+  --habit-cell: 28px;   /* toggle visual size */
+  --habit-gap: 8px;
+  --habit-radius: 8px;
+  --habit-border: #e3e3e3;
+}
+/* ============== GRID + LAYOUT ============ */
+.row {
+  display: grid;
+  grid-template-columns: 1fr repeat(7, var(--habit-cell));
+  column-gap: var(--habit-gap);
+  align-items: center;
+}
+.nameBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nameInput {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--habit-border);
+  border-radius: 6px;
+}
+/* ============== REMOVE / CONFIRM ========= */
+.removeBtn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--habit-border);
+  border-radius: 6px;
+  line-height: 22px;
+  background: #fff;
+  cursor: pointer;
+}
+.confirmBar { display: inline-flex; gap: 6px; }
+.confirm, .cancel {
+  height: 24px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--habit-border); background: #fff; cursor: pointer;
+}
+.confirm { background: #fee2e2; border-color: #fecaca; }
+/* ============== TOGGLE SIZING/THEME ====== */
+/* Use the universal ToggleButton; set its size, hit area, and colors here */
+.toggle {
+  /* Size */
+  --tgl-size: var(--habit-cell);
+  --tgl-hit: 44px;
+  --tgl-radius: 6px;
+
+  /* Off state */
+  --tgl-bg-off: #f5f5f5;
+  --tgl-border-off: #d9d9d9;
+
+  /* On state (green tick) */
+  --tgl-bg-on: #16a34a;
+  --tgl-border-on: transparent;
+  --tgl-ink-on: #ffffff;
+
+  /* Focus ring */
+  --tgl-ring: rgba(22,163,74,.45);
+}
+/* ============== SPACING UTILITIES ========= */
+.mt-4 { margin-top: 4px; }
+.mb-4 { margin-bottom: 4px; }
+.ml-auto { margin-left: auto; }

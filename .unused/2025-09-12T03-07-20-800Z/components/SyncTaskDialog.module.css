@@ -1,0 +1,50 @@
+/* src/components/SyncTaskDialog.module.css */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12, 12px);
+  min-width: 320px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--muted, #555);
+}
+
+.input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-small, 6px);
+  font-size: 14px;
+}
+
+.row {
+  display: inline-flex;
+  gap: var(--space-12, 12px);
+  align-items: center;
+}
+
+.toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.error {
+  color: var(--err, #d33);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8, 8px);
+  margin-top: var(--space-8, 8px);
+}

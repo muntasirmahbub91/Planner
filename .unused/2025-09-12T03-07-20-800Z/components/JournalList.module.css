@@ -1,0 +1,179 @@
+/* src/components/JournalList.module.css
+ *
+ * Sections:
+ *  1) Layout container
+ *  2) Group header (week/month)
+ *  3) Entry list and rows
+ *  4) Date badge and metadata
+ *  5) Empty state
+ *  6) Interactions and focus
+ *
+ * Key controls you can tweak:
+ *  - Spacing:   --space-4/6/8/10/12/16  → gaps and paddings
+ *  - Radius:    --radius-small/medium   → corners of rows and badges
+ *  - Colors:    --color-bg/surface/border/text/muted/brand
+ *  - Shadows:   --shadow-1/2           → row elevation
+ *  - Sizes:     --journal-row-min-h    → row height
+ */
+
+/* -----------------------------------------
+ * 1) Layout container
+ * -------------------------------------- */
+
+:root {
+  /* Controls the minimum height of each journal row */
+  --journal-row-min-h: 60px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10, 10px);        /* Controls vertical spacing between groups */
+  padding: var(--space-12, 12px);    /* Outer padding of the list */
+  background: var(--color-surface, #fafafa);
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: var(--radius-medium, 8px);
+}
+
+/* -----------------------------------------
+ * 2) Group header (week/month)
+ * -------------------------------------- */
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6, 6px) var(--space-8, 8px);  /* Header padding */
+  color: var(--color-muted, #666);
+  font-size: 0.85rem;                                 /* Header text size */
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.groupTitle {
+  font-weight: 600;                                   /* Emphasize group title */
+}
+
+.groupCount {
+  opacity: 0.8;                                       /* Lighter secondary count text */
+}
+
+/* -----------------------------------------
+ * 3) Entry list and rows
+ * -------------------------------------- */
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 6px);           /* Spacing between journal rows */
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* Date badge | preview text | open button */
+  align-items: center;
+  gap: var(--space-8, 8px);            /* Column gap inside a row */
+  min-height: var(--journal-row-min-h);
+  padding: var(--space-10, 10px);      /* Row inner padding */
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0,0,0,0.06)); /* Row elevation */
+}
+
+.preview {
+  min-width: 0;                        /* Enable ellipsis */
+  color: var(--color-text, #222);
+  font-size: 0.95rem;                  /* Preview text size */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;             /* Truncates long entries */
+}
+
+/* -----------------------------------------
+ * 4) Date badge and metadata
+ * -------------------------------------- */
+
+.dateBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;                   /* Badge padding */
+  border-radius: var(--radius-pill, 999px);
+  background: var(--chip-bg, #f2f2f2); /* Badge background color */
+  border: 1px solid var(--color-border, #e5e5e5);
+  color: var(--color-text, #333);
+  font-size: 0.85rem;                  /* Badge text size */
+}
+
+.metaRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6, 6px);            /* Space between metadata items */
+  color: var(--color-muted, #777);
+  font-size: 0.8rem;                   /* Metadata text size */
+}
+
+/* Accent for today’s entry */
+.today {
+  border-color: var(--color-brand, #E29612);          /* Badge border for today */
+  box-shadow: inset 0 0 0 2px var(--color-brand, #E29612);
+}
+
+/* -----------------------------------------
+ * 5) Empty state
+ * -------------------------------------- */
+
+.empty {
+  padding: var(--space-12, 12px);      /* Empty state padding */
+  color: var(--color-muted, #888);
+  font-style: italic;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed var(--color-border, #ddd);
+  border-radius: var(--radius-medium, 8px);
+}
+
+/* -----------------------------------------
+ * 6) Interactions and focus
+ * -------------------------------------- */
+
+.openBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;                     /* Button horizontal padding */
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border, #ddd);
+  background: #fff;
+  color: var(--color-text, #111);
+  cursor: pointer;
+}
+
+.openBtn:hover {
+  background: var(--color-hover, #f5f5f5);            /* Hover background */
+}
+
+.row:has(.openBtn:focus-visible),
+.row:focus-within {
+  outline: 2px solid var(--color-brand, #E29612);     /* Row focus outline */
+  outline-offset: 2px;
+}
+
+.rowClickable {
+  position: relative;
+}
+
+.rowClickable::after {
+  /* Expand click target across the row without covering content */
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* Compact density modifier */
+.compact .row {
+  min-height: calc(var(--journal-row-min-h) - 12px);  /* Shrinks row height */
+  padding: var(--space-8, 8px);                       /* Tighter padding */
+}

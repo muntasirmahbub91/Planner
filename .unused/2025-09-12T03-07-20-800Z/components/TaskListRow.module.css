@@ -1,0 +1,58 @@
+/* src/components/TaskListRow.module.css */
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-12, 12px);
+  align-items: center;
+  padding: var(--space-10, 10px) var(--space-12, 12px);
+  border: 1px solid #e6e6e6;
+  border-radius: var(--radius-medium, 12px);
+  background: var(--surface, #fff);
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  min-width: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eee;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  white-space: nowrap;
+}
+
+.date {
+  font-size: 12px;
+  color: var(--muted, #666);
+}
+
+.btn {
+  padding: 4px 8px;
+}
+
+.delete {
+  color: #b22;
+}
+
+.hiddenDate {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}

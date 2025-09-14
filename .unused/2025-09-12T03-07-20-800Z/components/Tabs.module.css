@@ -1,0 +1,36 @@
+/* src/components/Tabs.module.css */
+.row {
+  display: inline-flex;
+  gap: var(--space-8, 8px);
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--brand, #E29612);
+  outline-offset: 2px;
+}
+
+.active {
+  color: var(--brand, #E29612);
+}
+
+.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--brand, #E29612);
+}

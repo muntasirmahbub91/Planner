@@ -1,0 +1,247 @@
+/* src/components/ReminderModal.module.css
+ *
+ * Sections:
+ *  1) Modal shell
+ *  2) Form layout
+ *  3) Fields: title, datetime, alerts
+ *  4) Chips / counters
+ *  5) Validation + help text
+ *  6) Footer actions
+ *  7) Focus + a11y
+ *  8) Density + responsive
+ *
+ * Controls you can tweak:
+ *  - Spacing:   --space-4/6/8/10/12/16/20 → gaps, paddings
+ *  - Radius:    --radius-small/medium/large/2xl → corners
+ *  - Colors:    --color-surface/border/text/muted/brand/ok/warn/err
+ *  - Shadows:   --shadow-1/2/3 → elevation
+ *  - Fonts:     Montserrat for headings; inherit for inputs
+ *  - Sizes:     --field-min-h, --modal-max-w
+ */
+
+/* -----------------------------------------
+ * 1) Modal shell
+ * -------------------------------------- */
+
+:root {
+  --modal-max-w: 640px;               /* Max width of dialog body */
+  --field-min-h: 40px;                /* Min height for inputs */
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  width: min(var(--modal-max-w), 92vw);
+  background: #fff;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: var(--shadow-3, 0 12px 30px rgba(0,0,0,0.18));
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-16, 16px);
+  border-bottom: 1px solid var(--color-border, #eee);
+}
+
+.title {
+  font-family: Montserrat, sans-serif; /* Heading font */
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--color-text, #111);
+}
+
+/* -----------------------------------------
+ * 2) Form layout
+ * -------------------------------------- */
+
+.body {
+  display: grid;
+  gap: var(--space-12, 12px);         /* Vertical spacing between rows */
+  padding: var(--space-16, 16px);
+}
+
+.row {
+  display: grid;
+  gap: var(--space-6, 6px);
+}
+
+.inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;     /* Title / Date-Time in two columns */
+  gap: var(--space-12, 12px);
+}
+
+/* -----------------------------------------
+ * 3) Fields: title, datetime, alerts
+ * -------------------------------------- */
+
+.label {
+  font-size: 0.85rem;
+  color: var(--color-muted, #666);
+}
+
+.input,
+.select {
+  min-height: var(--field-min-h);
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--color-text, #111);
+  background: #fff;
+  border: 1px solid var(--color-border, #ccc);  /* Field border */
+  border-radius: var(--radius-small, 6px);
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0,0,0,0.06));
+}
+
+.input:focus,
+.select:focus {
+  outline: 2px solid var(--color-brand, #E29612);     /* Focus color */
+  outline-offset: 2px;
+}
+
+.textarea {
+  min-height: 88px;                    /* Notes field height */
+  resize: vertical;
+}
+
+/* -----------------------------------------
+ * 4) Chips / counters
+ * -------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6, 6px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;                /* Pill shape */
+  border: 1px solid var(--color-border, #ddd);
+  background: var(--chip-bg, #f2f2f2);
+  color: var(--color-text, #333);
+  font-size: 0.85rem;
+  cursor: default;
+}
+
+.chipActive {
+  border-color: var(--color-brand, #E29612);
+  background: rgba(226,150,18,0.12);
+}
+
+.chipBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border, #ddd);
+  background: #fff;
+  cursor: pointer;
+}
+
+.chipBtn:hover {
+  background: var(--color-hover, #f5f5f5);
+}
+
+/* -----------------------------------------
+ * 5) Validation + help text
+ * -------------------------------------- */
+
+.help {
+  font-size: 0.8rem;
+  color: var(--color-muted, #777);
+}
+
+.error {
+  font-size: 0.85rem;
+  color: var(--color-err, #d93025);
+}
+
+.inputError {
+  border-color: var(--color-err, #d93025);
+  box-shadow: 0 0 0 2px rgba(217,48,37,0.12);
+}
+
+/* -----------------------------------------
+ * 6) Footer actions
+ * -------------------------------------- */
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8, 8px);
+  padding: var(--space-12, 12px) var(--space-16, 16px);
+  border-top: 1px solid var(--color-border, #eee);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;                     /* Button horizontal size */
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border, #ddd);
+  background: #fff;
+  color: var(--color-text, #111);
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--color-hover, #f5f5f5);
+}
+
+.primary {
+  background: var(--color-brand, #E29612);           /* Primary action color */
+  border-color: var(--color-brand, #E29612);
+  color: #fff;
+}
+
+.destructive {
+  background: var(--color-err, #d93025);             /* Delete action */
+  border-color: var(--color-err, #d93025);
+  color: #fff;
+}
+
+/* -----------------------------------------
+ * 7) Focus + a11y
+ * -------------------------------------- */
+
+.closeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.closeIcon:focus-visible,
+.btn:focus-visible,
+.chipBtn:focus-visible {
+  outline: 2px solid var(--color-brand, #E29612);
+  outline-offset: 2px;
+}
+
+/* -----------------------------------------
+ * 8) Density + responsive
+ * -------------------------------------- */
+
+.compact .body { gap: var(--space-8, 8px); }          /* Tighter form rows */
+
+@media (max-width: 720px) {
+  .inline { grid-template-columns: 1fr; }             /* Stack fields on mobile */
+  .shell { width: 94vw; }
+}

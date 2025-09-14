@@ -1,0 +1,13 @@
+/* Enforce >=40px vertical spacing between core DayView blocks */
+.scroll{ gap:40px !important; }
+@media (max-width:640px){
+  .scroll{ gap:40px !important; }
+}
+/* Safety: if blocks are not siblings of .scroll, add adjacency margins */
+.section + .dayrem-list,
+.section + .habitBox,
+.dayrem-list + .section,
+.dayrem-list + .habitBox,
+.habitBox + .section{
+  margin-top:40px;
+}
