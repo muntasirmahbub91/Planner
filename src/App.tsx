@@ -14,6 +14,7 @@ import TasksView from "@/views/TasksView";
 import ProjectsView from "@/views/ProjectsView";
 import RemindersView from "@/views/RemindersView";
 import JournalView from "@/views/JournalView";
+import ListView from "@/views/ListsView"; // NEW
 
 /** Calendar slot switches among Day/Week/Month/Year */
 function CalendarSlot({ view }: { view: View }) {
@@ -36,6 +37,7 @@ function SecondarySlot({ mode }: { mode: string }) {
   if (mode === "projects") return <ProjectsView />;
   if (mode === "reminders") return <RemindersView />;
   if (mode === "journal") return <JournalView />;
+  if (mode === "lists") return <ListView />; // NEW
   return null;
 }
 
@@ -90,6 +92,7 @@ export default function App() {
               ["projects", "PROJECTS"],
               ["reminders", "REMINDERS"],
               ["journal", "JOURNAL"],
+              ["lists", "LISTS"], // NEW fifth button
             ] as const).map(([id, label]) => (
               <button
                 key={id}

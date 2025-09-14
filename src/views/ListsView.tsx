@@ -1,49 +1,73 @@
-import { useRef, useState } from "react";
-import { useLists } from "../stores/listsStore";
-import ListCard from "../components/lists/ListCard";
+import { useRef, useState, useCallback, useId } from "react";
+import { useLists } from "@/stores/listsStore";
+import ListCard from "@/components/lists/ListCard";
 import "./ListsView.css";
 
-export default function ListsView(){
+export default function ListView() {
   const { lists, addList } = useLists();
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const titleId = useId();
 
-  function handleCreate(){
+  const handleCreate = useCallback(() => {
     const t = draft.trim();
-    if(!t) return;
+    if (!t) return;
     addList(t);
     setDraft("");
     inputRef.current?.focus();
-  }
+  }, [draft, addList]);
 
   return (
-    <div className="root">
+    <section className="root" aria-labelledby={titleId}>
       <div className="topRow">
-        <div className="title">LISTS</div>
-        <input
-          ref={inputRef}
-          className="addListInput"
-          placeholder="New list title"
-          value={draft}
-          onChange={(e)=>setDraft(e.target.value)}
-          onKeyDown={(e)=>{
-            if(e.key==="Enter") handleCreate();
-            if(e.key==="Escape") setDraft("");
+        <h2 id={titleId} className="title">LISTS</h2>
+
+        <form
+          className="addListForm"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreate();
           }}
-        />
-        <button className="addListBtn" onClick={handleCreate} disabled={!draft.trim()}>
-          Create
-        </button>
+        >
+          <label htmlFor="new-list" className="sr-only">New list title</label>
+          <input
+            id="new-list"
+            ref={inputRef}
+            className="addListInput"
+            placeholder="New list title"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setDraft("");
+            }}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button
+            type="submit"
+            className="addListBtn"
+            disabled={!draft.trim()}
+          >
+            Create
+          </button>
+        </form>
       </div>
 
-      <div className="hint">Tip: double-click an item to edit. Checked items sink to the bottom.</div>
+      <p className="hint">
+        Tip: double-click an item to edit. Checked items sink to the bottom.
+      </p>
 
-      <div className="grid">
-        {lists.map((l)=> (
-          <ListCard key={l.id} list={l} />
-        ))}
-      </div>
-    </div>
+      {lists.length === 0 ? (
+        <div className="empty">No lists yet. Create one above.</div>
+      ) : (
+        <div className="grid" role="list">
+          {lists.map((l) => (
+            <div key={l.id} role="listitem">
+              <ListCard list={l} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
-
