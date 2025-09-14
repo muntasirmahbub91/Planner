@@ -3,6 +3,8 @@ node_modules/
 dist/
 build/
 .vite/
+# Vercel build output
+.vercel/output/
 # OS/editor
 .DS_Store
 Thumbs.db
