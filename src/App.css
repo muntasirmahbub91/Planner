@@ -1,4 +1,4 @@
-/* App.css — centered 480px app, fixed header+footer with safe-area fill, single scroller, 5-button bottom bar */
+/* App.css — centered 480px app, fixed header+footer with safe-area fill, single scroller, 5-button bottom bar, no iOS focus-zoom */
 
 /* Font */
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap");
@@ -21,13 +21,18 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* ===== Page shell ===== */
+/* ===== Global / zoom control ===== */
+html{-webkit-text-size-adjust:100%}
+input,select,textarea{font-size:16px!important} /* prevent iOS focus zoom */
+
 html,body,#root{height:100%}
 html,body{margin:0;overflow:hidden}
 body{
   color:var(--ink); background:#f4f4f4;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
+
+/* ===== Page shell ===== */
 .page{height:100svh;display:flex;justify-content:center}
 .app{
   width:100%; max-width:var(--frame-max); height:100%;
