@@ -1,38 +1,38 @@
-// HabitSection.tsx (tight version)
+// src/sections/HabitsSection.tsx
 import React, { useMemo, useState } from "react";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
 import { useHabitsStore, type Habit } from "@/stores/habitsStore";
+import { useDateStore } from "@/stores/dateStore";
 
-const DAYS = ["S","S","M","T","W","T","F"];
-const MAX_HABITS = 5;
-
-/* compact sizing */
+/* sizing */
 const PAD = 12;
 const GAP = 8;
-const PILL = 28;     // toggle size
-const DAY = 22;      // day badge size
+const PILL = 28;   // toggle size
+const DAY = 22;    // header badge size
 const FS_TITLE = 16;
 const FS_TEXT = 14;
 const FS_DAY = 11;
 
-export default function HabitSection() {
+const dayLetter = (eDay: number) =>
+  ["S","M","T","W","T","F","S"][new Date(eDay * 86400000).getDay()];
+const last7 = (anchor: number) => Array.from({ length: 7 }, (_, i) => anchor - 6 + i);
+
+export default function HabitsSection() {
   const habits = useHabitsStore(s => s.habits);
   const add = useHabitsStore(s => s.add);
   const rename = useHabitsStore(s => s.rename);
-  const setToggle = useHabitsStore(s => s.setToggle);
+  const setForDay = useHabitsStore(s => s.setForDay);
+
+  // anchor last column to DayView-selected or Today
+  const anchor = useDateStore(s => s.followHabits === "dayview" ? s.selected : s.today);
+  const today = useDateStore(s => s.today);
+  const days = useMemo(() => last7(anchor), [anchor]);
 
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const atCap = habits.length >= MAX_HABITS;
-  const gridTemplate = useMemo<React.CSSProperties>(
-    () => ({ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP }),
-    []
-  );
-
   function addNow() {
-    if (atCap) return;
     const t = draft.trim();
     if (!t) return;
     add(t);
@@ -42,17 +42,12 @@ export default function HabitSection() {
 
   return (
     <section style={box}>
-      <header className="Habits__header" style={header}>
+      <header style={header}>
         <h3 style={title}>HABITS</h3>
-        <AddButton
-          size="sm"
-          ariaLabel={atCap ? "Habit cap reached" : "Add habit"}
-          title={atCap ? "Habit cap reached" : "Add habit"}
-          onClick={() => { if (!atCap) setAdding(v => !v); }}
-        />
+        <AddButton size="sm" ariaLabel="Add habit" title="Add habit" onClick={() => setAdding(v => !v)} />
       </header>
 
-      {adding && !atCap && (
+      {adding && (
         <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           <input
             value={draft}
@@ -71,32 +66,54 @@ export default function HabitSection() {
         </div>
       )}
 
-      {/* Days header */}
-      <div style={{ ...gridTemplate, alignItems: "center", marginBottom: 6 }}>
+      {/* Days header — last column = anchor (today or DayView date) */}
+      <div style={{ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP, alignItems: "center", marginBottom: 6 }}>
         <div />
-        {DAYS.map((d, i) => (
-          <div key={i} style={dayBadge} aria-hidden>{d}</div>
+        {days.map((d, i) => (
+          <div
+            key={d}
+            style={{
+              ...dayBadge,
+              opacity: d > today ? 0.4 : 1,
+              outline: i === 6 ? "2px solid #e6e6e6" : "none", // highlight anchor column
+              outlineOffset: 0,
+            }}
+            aria-hidden
+            aria-current={i === 6 ? "date" : undefined}
+            title={new Date(d * 86400000).toDateString()}
+          >
+            {dayLetter(d)}
+          </div>
         ))}
       </div>
 
       {/* Habit rows */}
       <div style={{ display: "grid", gap: 6 }}>
         {habits.map((h: Habit) => (
-          <div key={h.id} style={{ ...gridTemplate, alignItems: "center" }}>
+          <div key={h.id} style={{ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP, alignItems: "center" }}>
             <InlineEditable
               value={h.name}
               onCommit={(v) => rename(h.id, v)}
               ariaLabel={`Rename ${h.name}`}
             />
-            {h.toggles.map((on: boolean, i: number) => (
-              <ToggleButton
-                key={i}
-                ariaLabel={`Toggle ${h.name} day ${i + 1}`}
-                pressed={!!on}
-                onChange={(next) => setToggle(h.id, i, next)}
-                className="ui-HabitToggle"
-              />
-            ))}
+            {days.map((d) => {
+              const pressed = !!h.log[d];
+              const isFuture = d > today;
+              return (
+                <ToggleButton
+                  key={d}
+                  ariaLabel={`Toggle ${h.name} for ${new Date(d * 86400000).toDateString()}`}
+                  pressed={pressed}
+                  disabled={isFuture}                       // prevent future check-ins
+                  className="ui-HabitToggle"
+                  // Make toggle immediate and resilient regardless of ToggleButton API
+                  onClick={() => !isFuture && setForDay(h.id, d, !pressed)}
+                  onChange={(next: any) =>
+                    setForDay(h.id, d, typeof next === "boolean" ? next : !pressed)
+                  }
+                />
+              );
+            })}
           </div>
         ))}
 
@@ -108,7 +125,7 @@ export default function HabitSection() {
   );
 }
 
-/* compact styles */
+/* styles */
 const box: React.CSSProperties = {
   border:"1px solid #e5e7eb", borderRadius:12, padding:PAD, background:"#fbfdf6",
 };
@@ -126,7 +143,7 @@ const dayBadge: React.CSSProperties = {
 };
 const empty: React.CSSProperties = { padding:8, color:"#64748b", fontStyle:"italic", textAlign:"center", fontSize:FS_TEXT };
 
-/* minimal inline editable */
+/* inline editable */
 function InlineEditable({
   value, onCommit, ariaLabel,
 }: { value: string; onCommit: (v: string) => void; ariaLabel?: string; }) {
