@@ -1,3 +1,4 @@
+// HabitSection.tsx (tight version)
 import React, { useMemo, useState } from "react";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
@@ -5,6 +6,15 @@ import { useHabitsStore, type Habit } from "@/stores/habitsStore";
 
 const DAYS = ["S","S","M","T","W","T","F"];
 const MAX_HABITS = 5;
+
+/* compact sizing */
+const PAD = 12;
+const GAP = 8;
+const PILL = 28;     // toggle size
+const DAY = 22;      // day badge size
+const FS_TITLE = 16;
+const FS_TEXT = 14;
+const FS_DAY = 11;
 
 export default function HabitSection() {
   const habits = useHabitsStore(s => s.habits);
@@ -17,20 +27,22 @@ export default function HabitSection() {
 
   const atCap = habits.length >= MAX_HABITS;
   const gridTemplate = useMemo<React.CSSProperties>(
-    () => ({ display: "grid", gridTemplateColumns: "1fr repeat(7, 36px)", gap: 12 }),
+    () => ({ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP }),
     []
   );
 
   function addNow() {
     if (atCap) return;
-    add(draft.trim());
+    const t = draft.trim();
+    if (!t) return;
+    add(t);
     setDraft("");
     setAdding(false);
   }
 
   return (
     <section style={box}>
-      <header className="Habits__header" style={{ ...header, position: "relative", zIndex: 2 }}>
+      <header className="Habits__header" style={header}>
         <h3 style={title}>HABITS</h3>
         <AddButton
           size="sm"
@@ -41,7 +53,7 @@ export default function HabitSection() {
       </header>
 
       {adding && !atCap && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -60,7 +72,7 @@ export default function HabitSection() {
       )}
 
       {/* Days header */}
-      <div style={{ ...gridTemplate, alignItems: "center", marginBottom: 8 }}>
+      <div style={{ ...gridTemplate, alignItems: "center", marginBottom: 6 }}>
         <div />
         {DAYS.map((d, i) => (
           <div key={i} style={dayBadge} aria-hidden>{d}</div>
@@ -68,7 +80,7 @@ export default function HabitSection() {
       </div>
 
       {/* Habit rows */}
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 6 }}>
         {habits.map((h: Habit) => (
           <div key={h.id} style={{ ...gridTemplate, alignItems: "center" }}>
             <InlineEditable
@@ -96,23 +108,23 @@ export default function HabitSection() {
   );
 }
 
-/* tiny styles */
+/* compact styles */
 const box: React.CSSProperties = {
-  border:"1px solid #e5e7eb", borderRadius:12, padding:16, background:"#fbfdf6",
+  border:"1px solid #e5e7eb", borderRadius:12, padding:PAD, background:"#fbfdf6",
 };
-const header: React.CSSProperties = { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 };
-const title: React.CSSProperties = { margin:0, fontSize:20, fontWeight:800 };
+const header: React.CSSProperties = { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 };
+const title: React.CSSProperties = { margin:0, fontSize:FS_TITLE, fontWeight:800, letterSpacing:.3 };
 const input: React.CSSProperties = {
-  flex:"1 1 auto", height:36, padding:"0 10px", border:"1px solid #cbd5e1", borderRadius:8, outline:"none",
+  flex:"1 1 auto", height:32, padding:"0 8px", border:"1px solid #cbd5e1", borderRadius:8, outline:"none", fontSize:16
 };
 const primaryBtn: React.CSSProperties = {
-  height:36, padding:"0 14px", border:"1px solid #16a34a", background:"#16a34a", color:"#fff", borderRadius:8,
+  height:32, padding:"0 10px", border:"1px solid #16a34a", background:"#16a34a", color:"#fff", borderRadius:8, fontSize:14
 };
 const dayBadge: React.CSSProperties = {
-  width:32, height:32, borderRadius:999, background:"#fff", border:"1px solid #e5e7eb",
-  display:"grid", placeItems:"center", fontWeight:700,
+  width:DAY, height:DAY, borderRadius:999, background:"#fff", border:"1px solid #e5e7eb",
+  display:"grid", placeItems:"center", fontWeight:700, fontSize:FS_DAY
 };
-const empty: React.CSSProperties = { padding:12, color:"#64748b", fontStyle:"italic", textAlign:"center" };
+const empty: React.CSSProperties = { padding:8, color:"#64748b", fontStyle:"italic", textAlign:"center", fontSize:FS_TEXT };
 
 /* minimal inline editable */
 function InlineEditable({
@@ -137,7 +149,7 @@ function InlineEditable({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      style={{ textAlign:"left", background:"transparent", border:"none", padding:"6px 8px", fontWeight:600 }}
+      style={{ textAlign:"left", background:"transparent", border:"none", padding:"4px 6px", fontWeight:600, fontSize:14 }}
       aria-label={ariaLabel}
       title="Rename"
     >
