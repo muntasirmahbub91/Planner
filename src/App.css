@@ -1,4 +1,4 @@
-/* App.css — 480px column; FIXED header+footer; tabs inline; single scroller; 5-button bottom bar */
+/* App.css — centered 480px app, fixed header+footer with safe-area fill, single scroller, 5-button bottom bar */
 
 /* Font */
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap");
@@ -9,14 +9,16 @@
   --frame-max:480px;
   --pad:20px;
 
-  --header-h:118px;     /* brand + tabs + 2px rule */
-  --footer-h:72px;      /* bottom bar height */
+  --header-h:118px;                 /* brand + tabs + rule (not incl. safe-top) */
+  --footer-h:72px;
 
   --bg:#fff; --ink:#0b0b0b; --hair:#d9d9d9;
   --accent:#E29612; --ok:#2ecc71; --warn:#f4b400; --muted:#e6eedf; --bottom:#0a0a0a;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bot: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* ===== Page shell ===== */
@@ -35,24 +37,19 @@ body{
   border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.06);
 }
 
-/* ===== Single scroller (content) ===== */
-.viewSlot{
-  flex:1; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
-  overflow-anchor:none; scrollbar-gutter:stable both-edges;
-  /* keep content clear of fixed header and footer */
-  padding-top:var(--header-h);
-  padding-bottom:calc(var(--footer-h) + var(--safe-bot));
-  padding-inline:max(env(safe-area-inset-left),12px) max(env(safe-area-inset-right),12px);
-}
-.band{padding:min(5vw,var(--pad))}
-
-/* ===== Fixed header ===== */
+/* ===== Fixed header: no top gap, fills notch ===== */
 .header{
-  position:fixed; inset-inline:0; top:var(--safe-top);
-  max-width:var(--frame-max); margin-inline:auto; z-index:1001;
-  background:#fff; border-top-left-radius:12px; border-top-right-radius:12px;
+  position:fixed; left:0; right:0; top:0; z-index:1001;
+  background:#fff;                                /* paint status-bar area */
+  padding-top:var(--safe-top);                    /* safe area inside header */
 }
-.topBar{position:relative; padding:16px min(5vw,var(--pad)) 2px}
+.topBar{
+  position:relative;
+  max-width:var(--frame-max);
+  margin:0 auto;
+  padding:16px min(5vw,var(--pad)) 2px;
+  border-top-left-radius:12px; border-top-right-radius:12px;
+}
 .topBar::after{content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--hair)}
 
 .brand-title{margin:0;font-size:28px;font-weight:900;letter-spacing:.5px;display:inline-block}
@@ -73,6 +70,16 @@ body{
   font-weight:700;letter-spacing:.6px;color:#333;margin-bottom:-2px;
 }
 .tab.active{background:var(--accent);color:#111}
+
+/* ===== Single scroller: offset once for header+footer ===== */
+.viewSlot{
+  flex:1; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+  overflow-anchor:none; scrollbar-gutter:stable both-edges;
+  padding-top: calc(var(--header-h) + var(--safe-top));
+  padding-bottom: calc(var(--footer-h) + var(--safe-bot));
+  padding-inline: max(var(--safe-left),12px) max(var(--safe-right),12px);
+}
+.band{padding:min(5vw,var(--pad))}
 
 /* ===== Sections ===== */
 .section{margin-top:24px}
@@ -109,19 +116,20 @@ body{
   background:#fff;cursor:pointer;
 }
 
-/* ===== Fixed bottom bar (5 buttons, flexible) ===== */
+/* ===== Fixed bottom bar: no bottom gap, 5 flexible buttons ===== */
 .BottomBarFixed{
-  position:fixed; inset-inline:0; bottom:0;
-  max-width:var(--frame-max); margin-inline:auto; z-index:1000;
-  /* extend into safe area so it covers the iOS home-indicator */
-  padding-bottom:var(--safe-bot);
-  background:transparent;
+  position:fixed; left:0; right:0; bottom:0; z-index:1000;
+  background:var(--bottom);                        /* cover home-indicator area */
+  padding-bottom:var(--safe-bot);                  /* safe area inside the bar */
 }
 .BottomBarFixed__inner{
+  max-width:var(--frame-max);
+  margin:0 auto;
   min-height:var(--footer-h);
-  background:var(--bottom); color:#f5f5f5;
-  display:flex; gap:8px; align-items:center;
-  padding:10px 16px; border-top:1px solid #111;
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px;
+  color:#f5f5f5; background:transparent;
+  border-top:1px solid #111;
   border-top-left-radius:12px; border-top-right-radius:12px;
 }
 .bb-btn{
