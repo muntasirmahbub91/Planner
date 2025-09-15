@@ -1,3 +1,4 @@
+// src/stores/listsStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -17,47 +18,64 @@ export type Checklist = {
   updatedAt: number;
 };
 
-function id() {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  ).toUpperCase();
-}
+type Place = "before" | "after";
 
 interface ListsState {
   lists: Checklist[];
+
   addList: (title: string) => string;
   renameList: (listId: string, title: string) => void;
   deleteList: (listId: string) => void;
+
   addItem: (listId: string, text: string) => string;
   editItem: (listId: string, itemId: string, text: string) => void;
   toggleItem: (listId: string, itemId: string) => void;
   removeItem: (listId: string, itemId: string) => void;
   clearCompleted: (listId: string) => void;
+
+  /** Reorder within the same done/undone group */
+  reorderItem: (
+    listId: string,
+    sourceId: string,
+    targetId: string,
+    place: Place
+  ) => void;
 }
+
+const now = () => Date.now();
+const makeId = () =>
+  (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
+
+function splitByDone(items: ChecklistItem[]) {
+  const undone: ChecklistItem[] = [];
+  const done: ChecklistItem[] = [];
+  for (const it of items) (it.done ? done : undone).push(it);
+  return { undone, done };
+}
+const combine = (undone: ChecklistItem[], done: ChecklistItem[]) => [...undone, ...done];
 
 export const useLists = create<ListsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       lists: [],
 
       addList: (title) => {
-        const newList: Checklist = {
-          id: id(),
+        const list: Checklist = {
+          id: makeId(),
           title: title.trim() || "Untitled",
           items: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          createdAt: now(),
+          updatedAt: now(),
         };
-        set((s) => ({ lists: [newList, ...s.lists] }));
-        return newList.id;
+        set((s) => ({ lists: [list, ...s.lists] }));
+        return list.id;
       },
 
       renameList: (listId, title) => {
+        const t = title.trim() || "Untitled";
         set((s) => ({
           lists: s.lists.map((l) =>
-            l.id === listId
-              ? { ...l, title: title.trim() || "Untitled", updatedAt: Date.now() }
-              : l
+            l.id === listId ? { ...l, title: t, updatedAt: now() } : l
           ),
         }));
       },
@@ -67,35 +85,35 @@ export const useLists = create<ListsState>()(
       },
 
       addItem: (listId, text) => {
-        const newItem: ChecklistItem = {
-          id: id(),
-          text: text.trim(),
+        const t = text.trim();
+        const item: ChecklistItem = {
+          id: makeId(),
+          text: t,
           done: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          createdAt: now(),
+          updatedAt: now(),
         };
         set((s) => ({
           lists: s.lists.map((l) =>
             l.id === listId
-              ? { ...l, items: [...l.items, newItem], updatedAt: Date.now() }
+              ? { ...l, items: [...l.items, item], updatedAt: now() }
               : l
           ),
         }));
-        return newItem.id;
+        return item.id;
       },
 
       editItem: (listId, itemId, text) => {
+        const t = text.trim();
         set((s) => ({
           lists: s.lists.map((l) =>
             l.id === listId
               ? {
                   ...l,
                   items: l.items.map((it) =>
-                    it.id === itemId
-                      ? { ...it, text: text.trim(), updatedAt: Date.now() }
-                      : it
+                    it.id === itemId ? { ...it, text: t, updatedAt: now() } : it
                   ),
-                  updatedAt: Date.now(),
+                  updatedAt: now(),
                 }
               : l
           ),
@@ -104,19 +122,27 @@ export const useLists = create<ListsState>()(
 
       toggleItem: (listId, itemId) => {
         set((s) => ({
-          lists: s.lists.map((l) =>
-            l.id === listId
-              ? {
-                  ...l,
-                  items: l.items.map((it) =>
-                    it.id === itemId
-                      ? { ...it, done: !it.done, updatedAt: Date.now() }
-                      : it
-                  ),
-                  updatedAt: Date.now(),
-                }
-              : l
-          ),
+          lists: s.lists.map((l) => {
+            if (l.id !== listId) return l;
+
+            // toggle and move the item to the end of its new group
+            let toggled: ChecklistItem | null = null;
+            const others: ChecklistItem[] = [];
+            for (const it of l.items) {
+              if (it.id === itemId) {
+                toggled = { ...it, done: !it.done, updatedAt: now() };
+              } else {
+                others.push(it);
+              }
+            }
+            if (!toggled) return l;
+
+            const { undone, done } = splitByDone(others);
+            if (toggled.done) done.push(toggled);
+            else undone.push(toggled);
+
+            return { ...l, items: combine(undone, done), updatedAt: now() };
+          }),
         }));
       },
 
@@ -127,7 +153,7 @@ export const useLists = create<ListsState>()(
               ? {
                   ...l,
                   items: l.items.filter((it) => it.id !== itemId),
-                  updatedAt: Date.now(),
+                  updatedAt: now(),
                 }
               : l
           ),
@@ -141,10 +167,42 @@ export const useLists = create<ListsState>()(
               ? {
                   ...l,
                   items: l.items.filter((it) => !it.done),
-                  updatedAt: Date.now(),
+                  updatedAt: now(),
                 }
               : l
           ),
+        }));
+      },
+
+      reorderItem: (listId, sourceId, targetId, place) => {
+        set((s) => ({
+          lists: s.lists.map((l) => {
+            if (l.id !== listId) return l;
+
+            const src = l.items.find((i) => i.id === sourceId);
+            const tgt = l.items.find((i) => i.id === targetId);
+            if (!src || !tgt) return l;
+            if (src.done !== tgt.done) return l; // keep groups separate
+
+            const { undone, done } = splitByDone(l.items);
+            const group = src.done ? done : undone;
+
+            const from = group.findIndex((i) => i.id === sourceId);
+            let to = group.findIndex((i) => i.id === targetId);
+            if (from < 0 || to < 0) return l;
+
+            // compute insertion index
+            to = place === "after" ? to + 1 : to;
+
+            const next = group.slice();
+            const [moved] = next.splice(from, 1);
+            next.splice(from < to ? to - 1 : to, 0, moved);
+
+            const items =
+              src.done ? combine(undone, next) : combine(next, done);
+
+            return { ...l, items, updatedAt: now() };
+          }),
         }));
       },
     }),

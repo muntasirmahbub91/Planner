@@ -1,3 +1,4 @@
+// src/components/lists/ListCard.tsx
 import { useMemo, useRef, useState } from "react";
 import styles from "./ListCard.module.css";
 import { Checklist, ChecklistItem, useLists } from "../../stores/listsStore";
@@ -13,6 +14,7 @@ export default function ListCard({ list }: Props) {
     renameList,
     deleteList,
     clearCompleted,
+    reorderItem, // NEW
   } = useLists();
 
   const [titleEdit, setTitleEdit] = useState(false);
@@ -21,6 +23,11 @@ export default function ListCard({ list }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
   const addRef = useRef<HTMLInputElement>(null);
+
+  // DnD state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [overPos, setOverPos] = useState<"before" | "after">("before");
 
   const { undone, done } = useMemo(() => {
     const u: ChecklistItem[] = [];
@@ -56,8 +63,102 @@ export default function ListCard({ list }: Props) {
     setTitleEdit(false);
   }
 
+  // ----- Drag & Drop -----
+  function onDragStart(e: React.DragEvent, id: string) {
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id); // Firefox requires data
+  }
+  function onDragOver(e: React.DragEvent, id: string) {
+    if (!draggingId || draggingId === id) return;
+    e.preventDefault(); // allow drop
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    setOverId(id);
+    setOverPos(e.clientY < mid ? "before" : "after");
+  }
+  function onDrop(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    if (draggingId && overId) reorderItem(list.id, draggingId, overId, overPos);
+    setDraggingId(null);
+    setOverId(null);
+  }
+  function onDragEnd() {
+    setDraggingId(null);
+    setOverId(null);
+  }
+
+  const renderRow = (it: ChecklistItem) => {
+    const isEditing = editingId === it.id;
+    const isDragging = draggingId === it.id;
+    const isOver = overId === it.id;
+    const dropCls = isOver ? (overPos === "before" ? styles.dropBefore : styles.dropAfter) : "";
+
+    return (
+      <div
+        key={it.id}
+        className={`${styles.itemRow} ${isDragging ? styles.dragging : ""} ${dropCls}`.trim()}
+        draggable={!isEditing}
+        onDragStart={(e) => onDragStart(e, it.id)}
+        onDragOver={(e) => onDragOver(e, it.id)}
+        onDrop={(e) => onDrop(e, it.id)}
+        onDragEnd={onDragEnd}
+      >
+        <span className={styles.dragHandle} aria-label="Drag to reorder" title="Drag to reorder">≡</span>
+
+        <input
+          className={styles.cb}
+          type="checkbox"
+          checked={it.done}
+          onChange={() => toggleItem(list.id, it.id)}
+          aria-label={it.text}
+        />
+
+        {isEditing ? (
+          <input
+            className={styles.itemInput}
+            value={editVal}
+            onChange={(e) => setEditVal(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitEditItem();
+              if (e.key === "Escape") { setEditingId(null); setEditVal(""); }
+            }}
+            onBlur={commitEditItem}
+            autoFocus
+          />
+        ) : (
+          <div
+            className={`${styles.itemText} ${it.done ? styles.itemTextDone : ""}`.trim()}
+            onDoubleClick={() => startEditItem(it)}
+            title="Double-click to edit"
+          >
+            {it.text}
+          </div>
+        )}
+
+        <button
+          className={styles.smallBtn}
+          onClick={() => (isEditing ? commitEditItem() : startEditItem(it))}
+          aria-label="Edit"
+          title="Edit"
+        >
+          ✎
+        </button>
+        <button
+          className={styles.smallBtn}
+          onClick={() => removeItem(list.id, it.id)}
+          aria-label="Remove"
+          title="Remove"
+        >
+          ×
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-list-id={list.id}>
+      {/* Title row */}
       <div className={styles.titleRow}>
         {titleEdit ? (
           <input
@@ -66,18 +167,13 @@ export default function ListCard({ list }: Props) {
             onChange={(e) => setTitleVal(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") commitTitle();
-              if (e.key === "Escape") {
-                setTitleVal(list.title);
-                setTitleEdit(false);
-              }
+              if (e.key === "Escape") { setTitleVal(list.title); setTitleEdit(false); }
             }}
             onBlur={commitTitle}
             autoFocus
           />
         ) : (
-          <div className={styles.title} title={list.title}>
-            {list.title}
-          </div>
+          <div className={styles.title} title={list.title}>{list.title}</div>
         )}
         <button
           className={styles.iconBtn}
@@ -99,6 +195,7 @@ export default function ListCard({ list }: Props) {
 
       <div className={styles.sep} />
 
+      {/* Add row */}
       <div className={styles.addRow}>
         <input
           ref={addRef}
@@ -116,62 +213,12 @@ export default function ListCard({ list }: Props) {
         </button>
       </div>
 
+      {/* Items */}
       <div className={styles.items}>
-        {[...undone, ...done].map((it) => (
-          <div key={it.id} className={styles.itemRow}>
-            <input
-              className={styles.cb}
-              type="checkbox"
-              checked={it.done}
-              onChange={() => toggleItem(list.id, it.id)}
-              aria-label={it.text}
-            />
-
-            {editingId === it.id ? (
-              <input
-                className={styles.itemInput}
-                value={editVal}
-                onChange={(e) => setEditVal(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitEditItem();
-                  if (e.key === "Escape") {
-                    setEditingId(null);
-                    setEditVal("");
-                  }
-                }}
-                onBlur={commitEditItem}
-                autoFocus
-              />
-            ) : (
-              <div
-                className={`${styles.itemText} ${it.done ? styles.itemTextDone : ""}`.trim()}
-                onDoubleClick={() => startEditItem(it)}
-                title="Double-click to edit"
-              >
-                {it.text}
-              </div>
-            )}
-
-            <button
-              className={styles.smallBtn}
-              onClick={() => (editingId === it.id ? commitEditItem() : startEditItem(it))}
-              aria-label="Edit"
-              title="Edit"
-            >
-              ✎
-            </button>
-            <button
-              className={styles.smallBtn}
-              onClick={() => removeItem(list.id, it.id)}
-              aria-label="Remove"
-              title="Remove"
-            >
-              ×
-            </button>
-          </div>
-        ))}
+        {[...undone, ...done].map(renderRow)}
       </div>
 
+      {/* Footer */}
       <div className={styles.footerRow}>
         <button className={styles.clearBtn} onClick={() => clearCompleted(list.id)}>
           Clear completed

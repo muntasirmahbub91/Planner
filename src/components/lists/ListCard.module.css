@@ -1,25 +1,90 @@
-.card{background:#fff;border:1px solid #e6e6e6;border-radius:16px;box-shadow:0 1px 4px rgba(0,0,0,.04);padding:14px;display:flex;flex-direction:column;gap:12px}
+/* ListCard.module.css — compact, touch-friendly, drag-reorder ready */
+
+.card{
+  background:#fff;
+  border:1px solid var(--hair, #e6e6e6);
+  border-radius:16px;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+/* Header / title */
 .titleRow{display:flex;align-items:center;gap:8px}
-.title{font-weight:700;font-size:16px;flex:1;min-width:0}
-.titleInput{flex:1;font:inherit;border:1px solid #ddd;border-radius:8px;padding:6px 8px}
-.iconBtn{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:8px}
+.title{font-weight:700;font-size:14px;flex:1;min-width:0}
+.titleInput{
+  flex:1; font:inherit; font-size:16px;         /* ≥16px to avoid iOS zoom */
+  border:1px solid #ddd; border-radius:8px; padding:6px 8px; outline:none;
+}
+.titleInput:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:1px}
+
+/* Icon buttons */
+.iconBtn{
+  border:0; background:transparent; cursor:pointer;
+  padding:6px; border-radius:8px; line-height:0;
+}
 .iconBtn:hover{background:#f4f4f4}
+.iconBtn:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:2px}
+
 .sep{height:1px;background:#eee}
 
+/* Add row */
 .addRow{display:flex;gap:8px}
-.addInput{flex:1;border:1px solid #ddd;border-radius:8px;padding:8px}
-.addBtn{border:0;background:#0b0b0b;color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer}
-.addBtn:disabled{opacity:.5;cursor:not-allowed}
+.addInput{
+  flex:1; border:1px solid #ddd; border-radius:8px; padding:8px;
+  font-size:16px; outline:none;
+}
+.addInput:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:1px}
+.addBtn{
+  border:0; background:#0b0b0b; color:#fff; border-radius:8px;
+  padding:8px 12px; cursor:pointer; font-weight:700;
+}
+.addBtn:disabled{opacity:.5; cursor:not-allowed}
 
+/* Items */
 .items{display:flex;flex-direction:column;gap:4px}
-.itemRow{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:8px}
+.itemRow{
+  display:flex; align-items:center; gap:8px;
+  padding:6px 4px; border-radius:8px; min-height:40px;
+  transition:background .15s ease;
+}
 .itemRow:hover{background:#fafafa}
 .cb{width:18px;height:18px}
-.itemText{flex:1;min-width:0;word-break:break-word}
+
+.dragHandle{
+  cursor:grab; user-select:none; padding:4px; line-height:0; color:#999;
+}
+.itemRow:active .dragHandle{cursor:grabbing}
+.dragging{opacity:.55}
+
+/* Visual drop cues */
+.dropBefore{box-shadow: inset 0 2px 0 var(--accent,#E29612)}
+.dropAfter{ box-shadow: inset 0 -2px 0 var(--accent,#E29612)}
+
+/* Text / editing */
+.itemText{flex:1;min-width:0;word-break:break-word;font-size:14px}
 .itemTextDone{text-decoration:line-through;opacity:.6}
-.itemInput{flex:1;border:1px solid #ddd;border-radius:8px;padding:6px 8px}
-.smallBtn{border:0;background:transparent;cursor:pointer;padding:4px;border-radius:6px}
+.itemInput{
+  flex:1; border:1px solid #ddd; border-radius:8px; padding:6px 8px;
+  font-size:16px; outline:none; /* ≥16px to avoid iOS zoom */
+}
+.itemInput:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:1px}
+
+/* Row action buttons */
+.smallBtn{
+  border:0; background:transparent; cursor:pointer;
+  padding:4px; border-radius:6px; line-height:0;
+}
 .smallBtn:hover{background:#f1f1f1}
+.smallBtn:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:2px}
+
+/* Footer */
 .footerRow{display:flex;justify-content:flex-end;gap:8px}
-.clearBtn{border:1px solid #ddd;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+.clearBtn{
+  border:1px solid #ddd; background:#fff; border-radius:8px;
+  padding:6px 10px; cursor:pointer; font-weight:600;
+}
 .clearBtn:hover{background:#fafafa}
+.clearBtn:focus-visible{outline:2px solid var(--accent,#E29612); outline-offset:2px}
