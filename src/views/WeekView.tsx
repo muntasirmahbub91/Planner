@@ -1,54 +1,55 @@
+// src/views/WeekView.tsx
 import "./WeekView.css";
-import React from 'react';
-import styles from './WeekView.module.css';
-import AddButton from '@/components/AddButton';
-import ToggleButton from '@/components/ToggleButton';
-import Modal from '@/components/Modal';
-import { setMs as setDateMs } from '@/stores/dateStore';
-import { addDays, dayKeyMs, startOfWeekSaturday } from '@/utils/date';
-import { getGoals, addGoal, removeGoal } from '@/stores/weeklyGoals';
-import { toggleGoalState, purgeUnknown, getGoalState } from '@/stores/weeklyGoalStates';
-import * as Tasks from '@/stores/tasksStore';
-import "./WeekView.css"
+import React from "react";
+import styles from "./WeekView.module.css";
+import AddButton from "@/components/AddButton";
+import ToggleButton from "@/components/ToggleButton";
+import Modal from "@/components/Modal";
+import { setMs as setDateMs } from "@/stores/dateStore";
+import { addDays, dayKeyMs, startOfWeekSaturday } from "@/utils/date";
+import { getGoals, addGoal, removeGoal } from "@/stores/weeklyGoals";
+import { toggleGoalState, purgeUnknown, getGoalState } from "@/stores/weeklyGoalStates";
+import * as Tasks from "@/stores/tasksStore";
 
-type T = { id: string; title?: string; name?: string; dueMs?: number; done?: boolean; completed?: boolean; status?: string };
+type T = {
+  id: string; title?: string; name?: string; dueMs?: number; done?: boolean; completed?: boolean; status?: string
+};
 type TaskAdd = { title: string; dueMs: number; urgent?: boolean; important?: boolean; tri?: number; done?: boolean };
 
-const DND_MIME = 'application/x-plannerx-task';
+const DND_MIME = "application/x-plannerx-task";
 const MS_DAY = 24 * 60 * 60 * 1000;
 
-const atStart = (ms:number) => { const d = new Date(ms); d.setHours(0,0,0,0); return d.getTime(); };
-const isDone = (t:T) => !!(t.done || t.completed || (t.status && String(t.status).toLowerCase() === 'done'));
+const atStart = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const isDone = (t: T) => !!(t.done || t.completed || (t.status && String(t.status).toLowerCase() === "done"));
 
-function dowClass(d: Date): string { return ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()]; }
-function fmtBadgeDay(d: Date): string { return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(d).toUpperCase(); }
+function dowClass(d: Date): string { return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][d.getDay()]; }
+function fmtBadgeDay(d: Date): string { return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(d).toUpperCase(); }
 function fmtBadgeDate(d: Date): string {
   const dd = d.getDate();
-  const m = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(d).toUpperCase();
+  const m = new Intl.DateTimeFormat(undefined, { month: "long" }).format(d).toUpperCase();
   return `${dd} ${m}`;
 }
 function fmtSubTitle(d: Date): string {
   const dd = d.getDate();
-  const m = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(d).toUpperCase();
+  const m = new Intl.DateTimeFormat(undefined, { month: "long" }).format(d).toUpperCase();
   const y = d.getFullYear();
   return `${dd} ${m}, ${y}`;
 }
 
 /** Resolve tasksStore APIs in a tolerant way */
 function useTasksStoreAdapters() {
-  // Subscribe to store changes. Prefer hook if present; else return snapshot from all().
-  const useTasksHook: any = (Tasks as any).useTasks ?? ((sel:any)=> []);
-  const tasksFromHook: T[] = useTasksHook((s:any) => s?.tasks ?? s) as T[];
+  const useTasksHook: any = (Tasks as any).useTasks ?? ((sel: any) => []);
+  const tasksFromHook: T[] = useTasksHook((s: any) => s?.tasks ?? s) as T[];
 
-  const getAll: (()=>T[]) =
-    (typeof (Tasks as any).all === 'function' ? (Tasks as any).all :
-    (typeof (Tasks as any).getAll === 'function' ? (Tasks as any).getAll :
+  const getAll: (() => T[]) =
+    (typeof (Tasks as any).all === "function" ? (Tasks as any).all :
+    (typeof (Tasks as any).getAll === "function" ? (Tasks as any).getAll :
     (() => tasksFromHook || [])));
 
-  const addFn: ((x:TaskAdd)=>any) | undefined =
+  const addFn: ((x: TaskAdd) => any) | undefined =
     (Tasks as any).add ?? (Tasks as any).create ?? (Tasks as any).addTask ?? (Tasks as any).createTask;
 
-  const updateFn: ((id:string, patch:Partial<T>)=>any) | undefined =
+  const updateFn: ((id: string, patch: Partial<T>) => any) | undefined =
     (Tasks as any).update ?? (Tasks as any).updateTask ?? (Tasks as any).patch ?? (Tasks as any).setTask;
 
   return { getAll, addFn, updateFn };
@@ -58,13 +59,12 @@ export default function WeekView(): JSX.Element {
   const [anchor, setAnchor] = React.useState<Date>(() => new Date());
   const weekStartRaw = React.useMemo(() => startOfWeekSaturday(anchor), [anchor]);
   const weekStartMs = React.useMemo<number>(() => {
-    if (typeof weekStartRaw === 'number') return weekStartRaw;
+    if (typeof weekStartRaw === "number") return weekStartRaw;
     if (weekStartRaw instanceof Date) return weekStartRaw.getTime();
     const n = Number(weekStartRaw as any);
-    return Number.isFinite(n) ? n : new Date().setHours(0,0,0,0);
+    return Number.isFinite(n) ? n : new Date().setHours(0, 0, 0, 0);
   }, [weekStartRaw]);
 
-  // Canonical tasks store adapters
   const { getAll, addFn, updateFn } = useTasksStoreAdapters();
 
   const weekKey = dayKeyMs(weekStartMs);
@@ -75,18 +75,18 @@ export default function WeekView(): JSX.Element {
     setGoalStates(purgeUnknown(weekKey, getGoals(weekKey)));
   }, [weekKey]);
 
-  // Selected day for adding tasks
-  const todayMs = new Date().setHours(0,0,0,0);
-  const defaultSel = (todayMs >= weekStartMs && todayMs < weekStartMs + 7*MS_DAY) ? todayMs : weekStartMs;
+  // selected day
+  const todayMs = new Date().setHours(0, 0, 0, 0);
+  const defaultSel = (todayMs >= weekStartMs && todayMs < weekStartMs + 7 * MS_DAY) ? todayMs : weekStartMs;
   const [selectedDayMs, setSelectedDayMs] = React.useState<number>(defaultSel);
   React.useEffect(() => {
-    const nextDefault = (todayMs >= weekStartMs && todayMs < weekStartMs + 7*MS_DAY) ? todayMs : weekStartMs;
+    const nextDefault = (todayMs >= weekStartMs && todayMs < weekStartMs + 7 * MS_DAY) ? todayMs : weekStartMs;
     setSelectedDayMs(nextDefault);
   }, [weekStartMs]);
 
-  // Composer state
-  const [showComposer, setShowComposer] = React.useState(false);
-  const [title, setTitle] = React.useState('');
+  // modal state
+  const [showModal, setShowModal] = React.useState(false);
+  const [title, setTitle] = React.useState("");
   const [urgent, setUrgent] = React.useState(false);
   const [important, setImportant] = React.useState(false);
 
@@ -94,10 +94,9 @@ export default function WeekView(): JSX.Element {
   const [tick, setTick] = React.useState(0);
 
   const days = React.useMemo(() => Array.from({ length: 7 }, (_, i) => new Date(weekStartMs + i * MS_DAY)), [weekStartMs]);
-  const weekNumber = Math.floor((weekStartMs - new Date(new Date(weekStartMs).getFullYear(), 0, 1).setHours(0,0,0,0)) / (7 * MS_DAY)) + 1;
+  const weekNumber = Math.floor((weekStartMs - new Date(new Date(weekStartMs).getFullYear(), 0, 1).setHours(0, 0, 0, 0)) / (7 * MS_DAY)) + 1;
 
-  // Store helpers
-  const tasksOn = React.useCallback((dayMs:number) => {
+  const tasksOn = React.useCallback((dayMs: number) => {
     const items = getAll() || [];
     return items.filter(t => t?.dueMs != null && atStart(t.dueMs!) === dayMs);
   }, [getAll]);
@@ -107,8 +106,8 @@ export default function WeekView(): JSX.Element {
     if (!t || !addFn) return;
     const payload: TaskAdd = { title: t, dueMs: atStart(selectedDayMs), urgent, important, tri: 0, done: false };
     await addFn(payload);
-    setTitle(''); setUrgent(false); setImportant(false); setShowComposer(false);
-    setDateMs(selectedDayMs); // keep global date aligned for Day view
+    setTitle(""); setUrgent(false); setImportant(false); setShowModal(false);
+    setDateMs(selectedDayMs); // align Day view
     setTick(v => v + 1);
   }
 
@@ -124,11 +123,11 @@ export default function WeekView(): JSX.Element {
       <div className={styles.bannerWrap}>
         <div className={styles.banner}>
           <button className={styles.chev} aria-label="Previous week" onClick={() => setAnchor(addDays(anchor, -7))}>‹</button>
-          <div style={{textAlign:'center'}}>
+          <div style={{ textAlign: "center" }}>
             <div className={styles.title}>{`WEEK ${weekNumber}`}</div>
             <div className={styles.subTitle}>{fmtSubTitle(new Date(weekStartMs))}</div>
           </div>
-          <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button className={styles.chev} aria-label="Next week" onClick={() => setAnchor(addDays(anchor, +7))}>›</button>
           </div>
         </div>
@@ -138,15 +137,19 @@ export default function WeekView(): JSX.Element {
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTitle}>GOALS</div>
-          <div style={{ marginLeft:'auto' }}>
-            <AddButton aria-label="Add weekly goal" onClick={() => {
-              const g = window.prompt('Weekly goal');
-              if (g && g.trim()) {
-                const next = addGoal(weekKey, g.trim());
-                setGoals(next);
-                setGoalStates(purgeUnknown(weekKey, next));
-              }
-            }} disabled={goals.length >= 3} />
+          <div style={{ marginLeft: "auto" }}>
+            <AddButton
+              aria-label="Add weekly goal"
+              onClick={() => {
+                const g = window.prompt("Weekly goal");
+                if (g && g.trim()) {
+                  const next = addGoal(weekKey, g.trim());
+                  setGoals(next);
+                  setGoalStates(purgeUnknown(weekKey, next));
+                }
+              }}
+              disabled={goals.length >= 3}
+            />
           </div>
         </div>
         <div className={styles.fullBleedRule} />
@@ -154,9 +157,16 @@ export default function WeekView(): JSX.Element {
           const checked = goalStates[g] ?? getGoalState(weekKey, g);
           return (
             <div key={g} className={styles.goalRow}>
-              <span className={styles.toggle}><ToggleButton checked={!!checked} onChange={() => setGoalStates(toggleGoalState(weekKey, g))} /></span>
-              <div className={styles.goal} style={{textDecoration: checked ? 'line-through' : 'none'}}>{g}</div>
-              <button className={styles.removeX} onClick={() => { const next = removeGoal(weekKey, g); setGoals(next); setGoalStates(purgeUnknown(weekKey, next)); }} aria-label={`Remove ${g}`} title="Remove">×</button>
+              <span className={styles.toggle}>
+                <ToggleButton checked={!!checked} onChange={() => setGoalStates(toggleGoalState(weekKey, g))} />
+              </span>
+              <div className={styles.goal} style={{ textDecoration: checked ? "line-through" : "none" }}>{g}</div>
+              <button
+                className={styles.removeX}
+                onClick={() => { const next = removeGoal(weekKey, g); setGoals(next); setGoalStates(purgeUnknown(weekKey, next)); }}
+                aria-label={`Remove ${g}`}
+                title="Remove"
+              >×</button>
             </div>
           );
         })}
@@ -165,58 +175,25 @@ export default function WeekView(): JSX.Element {
       {/* Tasks */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle} style={{textTransform:"uppercase", marginTop:40}}>TASKS</div>
-          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{fontSize:12, opacity:.7}}>
-              {new Date(selectedDayMs).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}
+          <div className={styles.sectionTitle} style={{ textTransform: "uppercase", marginTop: 40 }}>TASKS</div>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 12, opacity: .7 }}>
+              {new Date(selectedDayMs).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
             </span>
-            <AddButton aria-label="Add task to selected day" onClick={() => { setShowComposer(true); setDateMs(selectedDayMs); }} />
+            <AddButton
+              aria-label="Add task to selected day"
+              onClick={() => { setShowModal(true); setDateMs(selectedDayMs); }}
+            />
           </div>
         </div>
         <div className={styles.fullBleedRule} />
-
-        {showComposer && (
-      <Modal open={showComposer} onClose={() => { setShowComposer(false); setTitle(''); setUrgent(false); setImportant(false); }}>
-        <div style={{ display:'grid', gap:12 }}>
-          <div style={{ fontWeight:800, fontSize:18 }}>Add task</div>
-          <input
-            className={styles.input}
-            placeholder="Task title..."
-            value={title}
-            onChange={(e)=>setTitle(e.target.value)}
-            onKeyDown={(e)=>{ if (e.key==='Enter') addTaskToSelectedDay(); if (e.key==='Escape'){ setShowComposer(false); } }}
-            autoFocus
-          />
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <button
-              className={`pill ${urgent ? 'active' : ''}`}
-              onClick={()=>setUrgent(v=>!v)}
-              style={{height:36, padding:'0 12px', border:'1px solid #cbd5e1', borderRadius:999, background: urgent ? '#fde68a' : '#f8fafc', fontWeight:700}}
-              aria-pressed={urgent}
-              title="Urgent"
-            >U</button>
-            <button
-              className={`pill ${important ? 'active' : ''}`}
-              onClick={()=>setImportant(v=>!v)}
-              style={{height:36, padding:'0 12px', border:'1px solid #cbd5e1', borderRadius:999, background: important ? '#fde68a' : '#f8fafc', fontWeight:700}}
-              aria-pressed={important}
-              title="Important"
-            >I</button>
-            <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-              <button className={styles.smallBtn ?? ''} onClick={()=>{ setShowComposer(false); setTitle(''); }}>Cancel</button>
-              <button className={styles.smallBtn ?? ''} onClick={addTaskToSelectedDay} disabled={!title.trim()}>Add</button>
-            </div>
-          </div>
-        </div>
-      </Modal>
-    )}
 
         <div className={styles.list}>
           {days.map((d) => {
             const dayMs = atStart(d.getTime());
             const isSelected = selectedDayMs === dayMs;
             const isDrop = hoverDay === dayMs;
-            const cls = `${styles.dayRow} ${styles[dowClass(d) as keyof typeof styles]}${isDrop ? ' ' + styles.dropping : ''}${isSelected ? ' ' + (styles.daySelected || '') : ''}`;
+            const cls = `${styles.dayRow} ${styles[dowClass(d) as keyof typeof styles]}${isDrop ? " " + styles.dropping : ""}${isSelected ? " " + (styles.daySelected || "") : ""}`;
 
             const dayTasks: T[] = tasksOn(dayMs);
 
@@ -228,7 +205,7 @@ export default function WeekView(): JSX.Element {
                 onDragOver={(e) => {
                   if (Array.from(e.dataTransfer.types).includes(DND_MIME)) {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
+                    e.dataTransfer.dropEffect = "move";
                     setHoverDay(dayMs);
                   }
                 }}
@@ -253,26 +230,69 @@ export default function WeekView(): JSX.Element {
                   {dayTasks.map(t => (
                     <div
                       key={t.id}
-                      className={`${styles.task} ${isDone(t) ? styles.taskDone : ''}`}
+                      className={`${styles.task} ${isDone(t) ? styles.taskDone : ""}`}
                       draggable={!isDone(t)}
                       onDragStart={(e) => {
                         if (isDone(t)) { e.preventDefault(); return; }
                         e.dataTransfer.setData(DND_MIME, JSON.stringify({ id: t.id, from: dayMs }));
-                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.effectAllowed = "move";
                       }}
-                      title={isDone(t) ? 'Completed tasks cannot be moved' : 'Drag to another day to reschedule'}
+                      title={isDone(t) ? "Completed tasks cannot be moved" : "Drag to another day to reschedule"}
                     >
                       <span className={styles.dot} />
-                      <span>{t.title || t.name || 'Untitled task'}</span>
+                      <span>{t.title || t.name || "Untitled task"}</span>
                     </div>
                   ))}
                 </div>
               </div>
             );
           })}
-          <div data-after-days-spacer style={{height:'100px'}} aria-hidden />
+          <div data-after-days-spacer style={{ height: "100px" }} aria-hidden />
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      {showModal && (
+        <Modal
+          open={showModal}
+          onClose={() => { setShowModal(false); setTitle(""); setUrgent(false); setImportant(false); }}
+        >
+          <div style={{ display: "grid", gap: 12, minWidth: 320 }}>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>Add task</div>
+            <div style={{ fontSize: 12, opacity: .7 }}>
+              For {new Date(selectedDayMs).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+            </div>
+            <input
+              className={styles.input}
+              placeholder="Task title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addTaskToSelectedDay(); if (e.key === "Escape") setShowModal(false); }}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                className={`pill ${urgent ? "active" : ""}`}
+                onClick={() => setUrgent(v => !v)}
+                style={{ height: 36, padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: 999, background: urgent ? "#fde68a" : "#f8fafc", fontWeight: 700 }}
+                aria-pressed={urgent}
+                title="Urgent"
+              >U</button>
+              <button
+                className={`pill ${important ? "active" : ""}`}
+                onClick={() => setImportant(v => !v)}
+                style={{ height: 36, padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: 999, background: important ? "#fde68a" : "#f8fafc", fontWeight: 700 }}
+                aria-pressed={important}
+                title="Important"
+              >I</button>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                <button className={styles.smallBtn ?? ""} onClick={() => { setShowModal(false); setTitle(""); }}>Cancel</button>
+                <button className={styles.smallBtn ?? ""} onClick={addTaskToSelectedDay} disabled={!title.trim()}>Add</button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
