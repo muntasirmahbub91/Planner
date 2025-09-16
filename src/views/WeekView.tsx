@@ -3,6 +3,7 @@ import React from 'react';
 import styles from './WeekView.module.css';
 import AddButton from '@/components/AddButton';
 import ToggleButton from '@/components/ToggleButton';
+import Modal from '@/components/Modal';
 import { setMs as setDateMs } from '@/stores/dateStore';
 import { addDays, dayKeyMs, startOfWeekSaturday } from '@/utils/date';
 import { getGoals, addGoal, removeGoal } from '@/stores/weeklyGoals';
@@ -175,15 +176,18 @@ export default function WeekView(): JSX.Element {
         <div className={styles.fullBleedRule} />
 
         {showComposer && (
-          <div className={styles.composer}>
-            <input
-              className={styles.input}
-              placeholder="Task title..."
-              value={title}
-              onChange={(e)=>setTitle(e.target.value)}
-              onKeyDown={(e)=>{ if (e.key==='Enter') addTaskToSelectedDay(); if (e.key==='Escape'){ setShowComposer(false); setTitle(''); } }}
-              autoFocus
-            />
+      <Modal open={showComposer} onClose={() => { setShowComposer(false); setTitle(''); setUrgent(false); setImportant(false); }}>
+        <div style={{ display:'grid', gap:12 }}>
+          <div style={{ fontWeight:800, fontSize:18 }}>Add task</div>
+          <input
+            className={styles.input}
+            placeholder="Task title..."
+            value={title}
+            onChange={(e)=>setTitle(e.target.value)}
+            onKeyDown={(e)=>{ if (e.key==='Enter') addTaskToSelectedDay(); if (e.key==='Escape'){ setShowComposer(false); } }}
+            autoFocus
+          />
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             <button
               className={`pill ${urgent ? 'active' : ''}`}
               onClick={()=>setUrgent(v=>!v)}
@@ -198,10 +202,14 @@ export default function WeekView(): JSX.Element {
               aria-pressed={important}
               title="Important"
             >I</button>
-            <button className={styles.smallBtn ?? ''} onClick={addTaskToSelectedDay} disabled={!title.trim()}>Add</button>
-            <button className={styles.smallBtn ?? ''} onClick={()=>{ setShowComposer(false); setTitle(''); }}>Cancel</button>
+            <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+              <button className={styles.smallBtn ?? ''} onClick={()=>{ setShowComposer(false); setTitle(''); }}>Cancel</button>
+              <button className={styles.smallBtn ?? ''} onClick={addTaskToSelectedDay} disabled={!title.trim()}>Add</button>
+            </div>
           </div>
-        )}
+        </div>
+      </Modal>
+    )}
 
         <div className={styles.list}>
           {days.map((d) => {
