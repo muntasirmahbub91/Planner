@@ -1,4 +1,5 @@
-/* App.css — centered 480px app, fixed header+footer with safe-area fill, single scroller, 5-button bottom bar, base body 12px, no iOS focus-zoom */
+/* App.css — 480px centered app. Fixed header + footer. Single scroller.
+   Thin bottom bar (content 56px). Safe-area painted without growing bars. */
 
 /* Font */
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap");
@@ -9,8 +10,8 @@
   --frame-max:480px;
   --pad:20px;
 
-  --header-h:118px;                 /* brand + tabs + rule (not incl. safe-top) */
-  --footer-h:72px;
+  --header-h:118px;                 /* brand + tabs; excludes safe-top */
+  --footer-h:56px;                  /* content height of bottom bar */
 
   --bg:#fff; --ink:#0b0b0b; --hair:#d9d9d9;
   --accent:#E29612; --ok:#2ecc71; --warn:#f4b400; --muted:#e6eedf; --bottom:#0a0a0a;
@@ -44,11 +45,11 @@ input,select,textarea{font-size:16px!important}
   border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.06);
 }
 
-/* ===== Fixed header: no top gap, fills notch ===== */
+/* ===== Fixed header: fills notch without growing layout ===== */
 .header{
   position:fixed; left:0; right:0; top:0; z-index:1001;
-  background:#fff;                                /* paint status-bar area */
-  padding-top:var(--safe-top);                    /* safe area inside header */
+  background:#fff;
+  padding-top:var(--safe-top);      /* paint status bar */
 }
 .topBar{
   position:relative;
@@ -78,7 +79,7 @@ input,select,textarea{font-size:16px!important}
 }
 .tab.active{background:var(--accent);color:#111}
 
-/* ===== Single scroller: offset once for header+footer ===== */
+/* ===== Single scroller: offset for header + footer + safe areas ===== */
 .viewSlot{
   flex:1; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
   overflow-anchor:none; scrollbar-gutter:stable both-edges;
@@ -123,18 +124,22 @@ input,select,textarea{font-size:16px!important}
   background:#fff;cursor:pointer;
 }
 
-/* ===== Fixed bottom bar: no bottom gap, 5 flexible buttons ===== */
+/* ===== Fixed bottom bar: paint safe area without growing bar ===== */
 .BottomBarFixed{
   position:fixed; left:0; right:0; bottom:0; z-index:1000;
-  background:var(--bottom);                        /* cover home-indicator area */
-  padding-bottom:var(--safe-bot);                  /* safe area inside the bar */
+  background:var(--bottom);
+}
+.BottomBarFixed::after{                     /* safe-area fill only */
+  content:""; position:absolute; left:0; right:0;
+  bottom: calc(-1 * var(--safe-bot)); height: var(--safe-bot);
+  background: var(--bottom); pointer-events:none;
 }
 .BottomBarFixed__inner{
   max-width:var(--frame-max);
   margin:0 auto;
-  min-height:var(--footer-h);
+  height:var(--footer-h);                  /* fixed content height */
   display:flex; align-items:center; gap:8px;
-  padding:10px 16px;
+  padding:0 16px;                          /* no vertical padding */
   color:#f5f5f5; background:transparent;
   border-top:1px solid #111;
   border-top-left-radius:12px; border-top-right-radius:12px;
@@ -142,7 +147,7 @@ input,select,textarea{font-size:16px!important}
 .bb-btn{
   flex:1 1 0;
   appearance:none;border:0;background:transparent;cursor:pointer;
-  padding:12px 6px;border-radius:12px;font-weight:800;letter-spacing:.6px;color:#cfcfcf;
+  padding:10px 6px;border-radius:12px;font-weight:800;letter-spacing:.6px;color:#cfcfcf;
 }
 .bb-btn[aria-selected="true"]{color:#fff;background:#1a1a1a;outline:2px solid #222}
 
