@@ -86,9 +86,10 @@ export default function HabitsSection() {
                 <ToggleButton
                   key={d}
                   ariaLabel={`Toggle ${h.name} for ${new Date(d * 86400000).toDateString()}`}
-                  value={pressed}
+                  pressed={pressed}
                   disabled={isFuture}
                   className="ui-HabitToggle"
+                  onClick={() => !isFuture && setForDay(h.id, d, !pressed)}
                   onChange={(next: any) => setForDay(h.id, d, typeof next === "boolean" ? next : !pressed)}
                 />
               );
