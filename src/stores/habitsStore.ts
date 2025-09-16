@@ -1,6 +1,6 @@
 // src/stores/habitsStore.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 /* ===== Local time-safe epoch-day ===== */
 export const epochDay = (d = new Date()) => {
@@ -20,6 +20,8 @@ export type Habit = {
 
 type State = {
   habits: Habit[];
+  _hydrated: boolean;
+
   add: (name: string) => string;
   rename: (id: string, name: string) => void;
   remove: (id: string) => void;
@@ -37,11 +39,32 @@ const now = () => Date.now();
 const uid = () =>
   (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
 
+/** Storage that survives normal mode; degrades safely in private mode */
+function safeStorage() {
+  try {
+    const k = "__z_ok__";
+    localStorage.setItem(k, "1");
+    localStorage.removeItem(k);
+    return createJSONStorage(() => localStorage);
+  } catch {
+    // Fallback no-op storage if blocked
+    return createJSONStorage(
+      () =>
+        ({
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        } as Storage)
+    );
+  }
+}
+
 /* ===== Store ===== */
 export const useHabitsStore = create<State>()(
   persist<State>(
     (set, get) => ({
       habits: [],
+      _hydrated: false,
 
       add: (name) => {
         const h: Habit = {
@@ -90,8 +113,13 @@ export const useHabitsStore = create<State>()(
       },
     }),
     {
-      name: "habits.v2",
+      name: "habits.v2",          // keep key stable to avoid data loss
       version: 2,
+      storage: safeStorage(),     // explicit storage with private-mode fallback
+      partialize: (s) => ({ habits: s.habits }), // persist only JSON-safe slice
+      onRehydrateStorage: () => (state) => {
+        state?.setState({ _hydrated: true });
+      },
       // Migrate from v1 {toggles:boolean[7]} to {log:Record<epochDay,boolean>}
       migrate: (persisted: any, fromVersion?: number) => {
         if (!persisted || fromVersion >= 2) return persisted;

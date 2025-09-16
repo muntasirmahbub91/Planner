@@ -1,6 +1,6 @@
 // src/stores/listsStore.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export type ChecklistItem = {
   id: string;
@@ -22,6 +22,7 @@ type Place = "before" | "after";
 
 interface ListsState {
   lists: Checklist[];
+  _hydrated: boolean;
 
   addList: (title: string) => string;
   renameList: (listId: string, title: string) => void;
@@ -33,7 +34,6 @@ interface ListsState {
   removeItem: (listId: string, itemId: string) => void;
   clearCompleted: (listId: string) => void;
 
-  /** Reorder within the same done/undone group */
   reorderItem: (
     listId: string,
     sourceId: string,
@@ -54,10 +54,29 @@ function splitByDone(items: ChecklistItem[]) {
 }
 const combine = (undone: ChecklistItem[], done: ChecklistItem[]) => [...undone, ...done];
 
+function safeStorage() {
+  try {
+    const k = "__z_ok__";
+    localStorage.setItem(k, "1");
+    localStorage.removeItem(k);
+    return createJSONStorage(() => localStorage);
+  } catch {
+    return createJSONStorage(
+      () =>
+        ({
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        } as Storage)
+    );
+  }
+}
+
 export const useLists = create<ListsState>()(
-  persist(
+  persist<ListsState>(
     (set, get) => ({
       lists: [],
+      _hydrated: false,
 
       addList: (title) => {
         const list: Checklist = {
@@ -125,7 +144,6 @@ export const useLists = create<ListsState>()(
           lists: s.lists.map((l) => {
             if (l.id !== listId) return l;
 
-            // toggle and move the item to the end of its new group
             let toggled: ChecklistItem | null = null;
             const others: ChecklistItem[] = [];
             for (const it of l.items) {
@@ -182,7 +200,7 @@ export const useLists = create<ListsState>()(
             const src = l.items.find((i) => i.id === sourceId);
             const tgt = l.items.find((i) => i.id === targetId);
             if (!src || !tgt) return l;
-            if (src.done !== tgt.done) return l; // keep groups separate
+            if (src.done !== tgt.done) return l;
 
             const { undone, done } = splitByDone(l.items);
             const group = src.done ? done : undone;
@@ -191,26 +209,27 @@ export const useLists = create<ListsState>()(
             let to = group.findIndex((i) => i.id === targetId);
             if (from < 0 || to < 0) return l;
 
-            // compute insertion index
             to = place === "after" ? to + 1 : to;
 
             const next = group.slice();
             const [moved] = next.splice(from, 1);
             next.splice(from < to ? to - 1 : to, 0, moved);
 
-            const items =
-              src.done ? combine(undone, next) : combine(next, done);
-
+            const items = src.done ? combine(undone, next) : combine(next, done);
             return { ...l, items, updatedAt: now() };
           }),
         }));
       },
     }),
-    { name: "lists.v1" }
+    {
+      name: "lists.v1",
+      storage: safeStorage(),
+      partialize: (s) => ({ lists: s.lists }),
+      onRehydrateStorage: () => (state) => state?.setState({ _hydrated: true }),
+    }
   )
 );
 
-// test helper
 export function __resetListsForTests() {
   useLists.setState({ lists: [] });
 }

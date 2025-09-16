@@ -1,7 +1,8 @@
 // src/components/lists/ListCard.tsx
 import { useMemo, useRef, useState } from "react";
 import styles from "./ListCard.module.css";
-import { Checklist, ChecklistItem, useLists } from "../../stores/listsStore";
+import { useLists } from "@/stores/listsStore";
+import type { Checklist, ChecklistItem } from "@/stores/listsStore";
 
 type Props = { list: Checklist };
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { useDateStore, getMs } from "@/stores/dateStore";
+import { useDateStore } from "@/stores/dateStore";
 import { useTasks, tasksOnDay, add, update, type Task } from "@/stores/tasksStore";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
@@ -11,11 +11,11 @@ function toDateInputValue(ms:number){ const d=new Date(ms); return `${d.getFullY
 function fromDateInputValue(v:string){ const [y,m,d]=v.split("-").map(x=>parseInt(x,10)); const dt=new Date(y,(m||1)-1,d||1); dt.setHours(0,0,0,0); return dt.getTime(); }
 
 export default function TasksSection(){
-  const tasks = useTasks();
+  useTasks();
 
-  const ms = getMs();
-  const anchorMs = dayStart(ms ?? Date.now());
-  const items = React.useMemo(() => (tasksOnDay(anchorMs) as Task[]) ?? [], [anchorMs, tasks]);
+  const anchor:any = useDateStore();
+  const anchorMs = typeof anchor==="number" ? dayStart(anchor) : dayStart(Date.now());
+  const items = (tasksOnDay(anchorMs) as Task[]) ?? [];
 
   const {active,completed} = useMemo(()=>{
     const isDone=(t:any)=> (typeof t.done==="boolean"?t.done:t.tri===1);

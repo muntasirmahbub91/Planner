@@ -14,11 +14,9 @@ import HabitsSection from "@/sections/HabitsSection";
 import "./DayView.css";
 
 export default function DayView() {
-  // epochDay for the banner and sections
   const eDay = useDateStore((s) => s.selected);
   const setTodaySelected = useDateStore((s) => s.setTodaySelected);
 
-  // Arrow keys (ignore while typing). Home = jump to Today.
   const go = React.useCallback((dir: -1 | 1) => (dir < 0 ? prev() : next()), []);
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,7 +54,7 @@ export default function DayView() {
       {/* Content */}
       <section><TasksSection /></section>
       <section><RemindersWindow /></section>
-      <section><HabitsSection /></section>
+      <section aria-label="Habits"><HabitsSection /></section>
     </main>
   );
 }
