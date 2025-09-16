@@ -10,6 +10,7 @@ import {
 
 import TasksSection from "@/sections/TasksSection";
 import HabitsSection from "@/sections/HabitsSection";
+import DailyReminder from "@/components/DailyReminder";
 import "./DayView.css";
 
 export default function DayView() {
@@ -69,7 +70,9 @@ export default function DayView() {
       </section>
 
       {/* Content */}
-      <section aria-label="Tasks"><TasksSection /></section><section aria-label="Habits"><HabitsSection /></section>
+      <section aria-label="Tasks"><TasksSection /></section>
+      <section aria-label="Reminders"><DailyReminder /></section>
+      <section aria-label="Habits"><HabitsSection /></section>
     </main>
   );
 }
