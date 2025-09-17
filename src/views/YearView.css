@@ -1,0 +1,69 @@
+/* src/views/YearView.css */
+
+/* ===== Container + Banner ===== */
+.yvContainer { padding: 0 16px 24px; color:#0f172a; }
+
+.yvBannerWrap { background:#f1f5f9; border:1px solid #e5e7eb; border-radius:16px; padding:12px 14px; margin:10px 0 20px; }
+.yvBanner { display:grid; grid-template-columns:48px 1fr 48px; align-items:center; gap:8px; }
+.yvTitle { font-weight:800; letter-spacing:.3px; font-size:28px; line-height:1; text-align:center; }
+.yvSubTitle { font-size:12px; color:#374151; text-transform:uppercase; letter-spacing:.5px; line-height:1; text-align:center; }
+.yvChev { background:transparent; border:none; padding:0; display:grid; place-items:center; cursor:pointer; font-size:24px; }
+
+/* ===== Quarters ===== */
+.yvQGrid { display:grid; grid-template-columns:1fr; gap:16px; }
+
+.yvQuarter { border:1px solid #e5e7eb; background:#fff; border-radius:16px; }
+.yvHeader { display:flex; align-items:baseline; justify-content:space-between; padding:12px 14px; cursor:pointer; }
+.yvHLeft { display:flex; flex-direction:column; }
+.yvQLabel { font-weight:800; font-size:18px; letter-spacing:.02em; }
+.yvQMonths { opacity:.6; font-size:12px; text-transform:uppercase; }
+.yvHRight { display:flex; align-items:center; gap:10px; color:#64748b; font-size:12px; }
+.yvChevQ { width:28px; height:28px; display:grid; place-items:center; }
+
+.yvBody { padding:8px 14px 14px; display:grid; gap:12px; }
+.yvWeeks { display:flex; flex-direction:column; gap:12px; }
+
+/* keep headers visible; only hide body when collapsed */
+.yvQuarter.yvCollapsed .yvBody { display:none; }
+
+/* ===== Week rows ===== */
+.yvWeekRow {
+  display:flex; gap:12px; border:1px solid #e5e7eb; border-radius:12px;
+  background:#ffffff; padding:12px 14px; align-items:flex-start;
+}
+.yvWeekBtn {
+  border:none; background:#f8fafc; border-radius:12px; padding:10px 12px;
+  cursor:pointer; min-width:100px; text-align:left;
+}
+.yvWeekCode { font-weight:800; font-size:20px; letter-spacing:.04em; }
+.yvWeekSub  { opacity:.7; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+.yvWeekMain { flex:1; display:flex; flex-direction:column; gap:8px; min-width:0; }
+
+/* ===== Goals list ===== */
+.yvGoals { display:flex; flex-direction:column; gap:6px; }
+.yvGoalItem { display:flex; align-items:center; gap:10px; }
+.yvGoalText { flex:1; border:1px solid #e5e7eb; background:#fff; border-radius:8px; padding:6px 8px; font-size:14px; }
+.yvRemove { border:none; background:#fee2e2; color:#b91c1c; padding:4px 8px; border-radius:999px; cursor:pointer; }
+
+/* ===== Row actions (add input + buttons) ===== */
+.yvRowActions {
+  display:flex; align-items:center; gap:8px;
+  flex-wrap:nowrap; /* set to wrap if you want stacking on very small widths */
+}
+
+/* cap input width so buttons stay visible */
+.yvInput{
+  flex:0 1 clamp(180px, 40vw, 100px);
+  min-width:0;
+  padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;
+}
+
+/* Spacer to keep bottom breathing room */
+.yvQGrid::after { content:""; display:block; height:100px; }
+
+/* ===== Small screens ===== */
+@media (max-width: 520px){
+  .yvTitle{ font-size:24px; }
+  .yvWeekBtn{ min-width:88px; }
+  .yvInput{ flex-basis: clamp(160px, 60vw, 240px); }
+}

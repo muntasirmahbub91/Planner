@@ -2,136 +2,316 @@
 import React, { useMemo, useState } from "react";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
-import { useHabitsStore, type Habit } from "@/stores/habitsStore";
-import { useDateStore } from "@/stores/dateStore";
+import {
+  useDateStore,
+  dayMs,
+  WEEK_START_DOW,
+  weekStartMs,
+  DAY_MS,
+} from "@/stores/dateStore";
+import {
+  useHabits,         // subscription tick
+  listAll,           // Habit[]
+  getWeekLog,        // (habitId, weekStartMs) => boolean[7]
+  toggleDay,         // (habitId, weekStartMs, index) => void
+  // Optional actions (will be feature-detected below)
+  // add as addHabitMaybe,
+  // rename as renameHabitMaybe,
+} from "@/stores/habitsStore";
 
-/* sizing */
-const PAD = 12, GAP = 8, PILL = 28, DAY = 22, FS_TITLE = 16, FS_TEXT = 14, FS_DAY = 11;
-const dayLetter = (eDay: number) => ["S","M","T","W","T","F","S"][new Date(eDay * 86400000).getDay()];
-const last7 = (anchor: number) => Array.from({ length: 7 }, (_, i) => anchor - 6 + i);
+type Habit = {
+  id: string;
+  name: string;
+  // optional legacy fields allowed; not used directly
+};
+
+const PILL = 28;
 
 export default function HabitsSection() {
-  const hydrated = useHabitsStore(s => s._hydrated); // non-blocking
-  const habits = useHabitsStore(s => s.habits);
-  const add = useHabitsStore(s => s.add);
-  const rename = useHabitsStore(s => s.rename);
-  const setForDay = useHabitsStore(s => s.setForDay);
+  // subscribe to store changes once; re-compute via selectors/memos
+  const tick = useHabits();
 
-  const anchor = useDateStore(s => s.followHabits === "dayview" ? s.selected : s.today);
-  const today = useDateStore(s => s.today);
-  const days = useMemo(() => last7(anchor), [anchor]);
+  // selected day → start of that calendar week
+  const selectedEday = useDateStore((s) => s.selected);
+  const selectedMs = dayMs(selectedEday);
+  const weekStart = weekStartMs(selectedMs, WEEK_START_DOW);
 
-  const [adding, setAdding] = useState(false);
+  // “today” at local midnight for future guard
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, []);
+
+  // days in this calendar week
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => weekStart + i * DAY_MS),
+    [weekStart]
+  );
+
+  // list habits
+  const habits = useMemo(() => listAll(), [tick]);
+
+  // compose state
+  const [compose, setCompose] = useState(false);
   const [draft, setDraft] = useState("");
 
-  function addNow() {
-    const t = draft.trim();
-    if (!t) return;
-    add(t);
+  // feature-detect store actions for add/rename
+  const addHabit = (name: string) => {
+    // try named export
+    // @ts-ignore
+    if (typeof (imported as any)?.add === "function") return (imported as any).add(name);
+    // try common alternates on store instance
+    // @ts-ignore
+    const s = (useHabits as any).getState?.();
+    const fn =
+      s?.add ??
+      s?.addHabit ??
+      s?.create ??
+      s?.createHabit;
+    if (typeof fn === "function") return fn(name);
+    console.warn("No add habit action available");
+  };
+  const renameHabit = (id: string, name: string) => {
+    // @ts-ignore
+    if (typeof (imported as any)?.rename === "function") return (imported as any).rename(id, name);
+    // @ts-ignore
+    const s = (useHabits as any).getState?.();
+    const fn =
+      s?.rename ??
+      s?.renameHabit ??
+      s?.updateName ??
+      s?.update;
+    if (typeof fn === "function") return fn(id, name);
+    console.warn("No rename habit action available");
+  };
+
+  // Inline add
+  function onAdd() {
+    const name = draft.trim();
+    if (!name) return;
+    addHabit(name);
     setDraft("");
-    setAdding(false);
+    setCompose(false);
   }
 
   return (
-    <section style={box} aria-label="Habits">
-      <header style={header}>
-        <h3 style={title}>HABITS</h3>
-        <AddButton size="sm" ariaLabel="Add habit" title="Add habit" onClick={() => setAdding(v => !v)} />
-      </header>
+    <section
+      aria-label="Habits"
+      style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#fbfdf6" }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+        <div>
+          <h3 style={{ margin: 0, fontWeight: 800 }}>HABITS</h3>
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            Week of{" "}
+            {new Date(weekStart).toLocaleDateString(undefined, {
+              month: "short",
+              day: "2-digit",
+            })}
+          </div>
+        </div>
+        <AddButton aria-label="Add habit" onClick={() => setCompose((v) => !v)} />
+      </div>
 
-      {adding && (
+      {/* Add box */}
+      {compose && (
         <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") addNow();
-              if (e.key === "Escape") { setDraft(""); setAdding(false); }
+              if (e.key === "Enter") onAdd();
+              if (e.key === "Escape") {
+                setDraft("");
+                setCompose(false);
+              }
             }}
             placeholder="Habit name…"
             aria-label="Habit name"
-            style={input}
-            maxLength={40}
+            style={{
+              flex: "1 1 auto",
+              height: 32,
+              padding: "0 8px",
+              border: "1px solid #cbd5e1",
+              borderRadius: 8,
+              outline: "none",
+              fontSize: 14,
+            }}
+            maxLength={60}
             autoFocus
           />
-          <button onClick={addNow} style={primaryBtn} aria-label="Confirm add">Add</button>
+          <button
+            onClick={onAdd}
+            style={{
+              height: 32,
+              padding: "0 10px",
+              border: "1px solid #16a34a",
+              background: "#16a34a",
+              color: "#fff",
+              borderRadius: 8,
+              fontSize: 14,
+            }}
+          >
+            Add
+          </button>
         </div>
       )}
 
-      {!hydrated && <div style={{opacity:.6, fontSize:12, marginBottom:6}}>Loading habits…</div>}
-
-      <div style={{ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP, alignItems: "center", marginBottom: 6 }}>
+      {/* Weekday header row */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
+          gap: 8,
+          alignItems: "center",
+          marginBottom: 6,
+        }}
+      >
         <div />
         {days.map((d, i) => (
           <div
             key={d}
-            style={{ ...dayBadge, opacity: d > today ? 0.4 : 1, outline: i === 6 ? "2px solid #e6e6e6" : "none", outlineOffset: 0 }}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 999,
+              background: "#fff",
+              border: "1px solid #e5e7eb",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 700,
+              fontSize: 11,
+              opacity: d > todayStart ? 0.4 : 1,
+            }}
             aria-hidden
             aria-current={i === 6 ? "date" : undefined}
-            title={new Date(d * 86400000).toDateString()}
+            title={new Date(d).toDateString()}
           >
-            {dayLetter(d)}
+            {"SMTWTFS"[new Date(d).getDay()]}
           </div>
         ))}
       </div>
 
+      {/* Habit rows */}
       <div style={{ display: "grid", gap: 6 }}>
-        {habits.map((h: Habit) => (
-          <div key={h.id} style={{ display: "grid", gridTemplateColumns: `auto repeat(7, ${PILL}px)`, gap: GAP, alignItems: "center" }}>
-            <InlineEditable value={h.name} onCommit={(v) => rename(h.id, v)} ariaLabel={`Rename ${h.name}`} />
-            {days.map((d) => {
-              const pressed = !!h.log[d];
-              const isFuture = d > today;
-              return (
-                <ToggleButton
-                  key={d}
-                  ariaLabel={`Toggle ${h.name} for ${new Date(d * 86400000).toDateString()}`}
-                  value={pressed}
-                  disabled={isFuture}
-                  className="ui-HabitToggle"
-                  onChange={(next: any) => setForDay(h.id, d, typeof next === "boolean" ? next : !pressed)}
-                />
-              );
-            })}
-          </div>
-        ))}
+        {habits.map((h: Habit) => {
+          const log = getWeekLog(h.id, weekStart); // boolean[7]
+          return (
+            <div
+              key={h.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <InlineEditable
+                value={h.name}
+                onCommit={(v) => renameHabit(h.id, v)}
+                ariaLabel={`Rename ${h.name}`}
+              />
+              {log.map((v, i) => {
+                const dayStart = days[i];
+                const isFuture = dayStart > todayStart;
+                return (
+                  <ToggleButton
+                    key={i}
+                    ariaLabel={`Toggle ${h.name} for ${new Date(dayStart).toDateString()}`}
+                    value={!!v}
+                    disabled={isFuture}
+                    className="ui-HabitToggle"
+                    onChange={() => {
+                      if (!isFuture) toggleDay(h.id, weekStart, i);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
 
-        {hydrated && habits.length === 0 && (
-          <div style={empty}>No habits yet. Click + to add one.</div>
+        {habits.length === 0 && (
+          <div style={{ padding: 8, color: "#64748b", fontStyle: "italic", textAlign: "center", fontSize: 14 }}>
+            No habits yet. Click + to add one.
+          </div>
         )}
       </div>
     </section>
   );
 }
 
-/* styles */
-const box: React.CSSProperties = { border:"1px solid #e5e7eb", borderRadius:12, padding:PAD, background:"#fbfdf6" };
-const header: React.CSSProperties = { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 };
-const title: React.CSSProperties = { margin:0, fontSize:FS_TITLE, fontWeight:800, letterSpacing:.3 };
-const input: React.CSSProperties = { flex:"1 1 auto", height:32, padding:"0 8px", border:"1px solid #cbd5e1", borderRadius:8, outline:"none", fontSize:16 };
-const primaryBtn: React.CSSProperties = { height:32, padding:"0 10px", border:"1px solid #16a34a", background:"#16a34a", color:"#fff", borderRadius:8, fontSize:14 };
-const dayBadge: React.CSSProperties = { width:DAY, height:DAY, borderRadius:999, background:"#fff", border:"1px solid #e5e7eb", display:"grid", placeItems:"center", fontWeight:700, fontSize:FS_DAY };
-const empty: React.CSSProperties = { padding:8, color:"#64748b", fontStyle:"italic", textAlign:"center", fontSize:FS_TEXT };
-
-function InlineEditable({ value, onCommit, ariaLabel }: { value: string; onCommit: (v: string) => void; ariaLabel?: string; }) {
+/* Inline rename control */
+function InlineEditable({
+  value,
+  onCommit,
+  ariaLabel,
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+  ariaLabel?: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(value);
+
   return editing ? (
     <input
       value={text}
       onChange={(e) => setText(e.target.value)}
-      onBlur={() => { setEditing(false); onCommit(text.trim() || value); }}
+      onBlur={() => {
+        setEditing(false);
+        onCommit(text.trim() || value);
+      }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") { setEditing(false); onCommit(text.trim() || value); }
-        if (e.key === "Escape") { setText(value); setEditing(false); }
+        if (e.key === "Enter") {
+          setEditing(false);
+          onCommit(text.trim() || value);
+        }
+        if (e.key === "Escape") {
+          setText(value);
+          setEditing(false);
+        }
       }}
       aria-label={ariaLabel}
-      style={input}
+      style={{
+        height: 32,
+        padding: "0 8px",
+        border: "1px solid #cbd5e1",
+        borderRadius: 8,
+        outline: "none",
+        fontSize: 14,
+      }}
       autoFocus
     />
   ) : (
-    <button type="button" onClick={() => setEditing(true)} style={{ textAlign:"left", background:"transparent", border:"none", padding:"4px 6px", fontWeight:600, fontSize:14 }} aria-label={ariaLabel} title="Rename">
+    <button
+      type="button"
+      onClick={() => {
+        setText(value);
+        setEditing(true);
+      }}
+      style={{
+        textAlign: "left",
+        background: "transparent",
+        border: "none",
+        padding: "4px 6px",
+        fontWeight: 600,
+        fontSize: 14,
+        cursor: "text",
+      }}
+      aria-label={ariaLabel}
+      title="Rename"
+    >
       {value}
     </button>
   );
 }
+
+// Workaround to allow feature-detecting optional named exports without TS errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const imported = null as unknown as {
+  add?: (name: string) => void;
+  rename?: (id: string, name: string) => void;
+};

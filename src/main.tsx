@@ -7,11 +7,13 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { useHabitsStore } from "@/stores/habitsStore";
+import { scheduleMidnightRollOver } from "@/stores/dateStore";
 
 // Eager rehydrate to avoid first-frame empty UI
 useHabitsStore.persist?.rehydrate?.();
 
-useHabitsStore.persist?.rehydrate?.();
+// Keep 'today' in sync across local midnights
+scheduleMidnightRollOver();
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");

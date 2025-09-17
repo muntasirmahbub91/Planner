@@ -1,179 +1,124 @@
-// src/sections/RemindersWindow.tsx
-import React, { useMemo, memo, useCallback } from "react";
-import { useDateStore } from "@/stores/dateStore";
-import { useReminders } from "@/stores/remindersStore";
+import React, { useMemo, useCallback } from "react";
+import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
+import { useReminders, listAll, toggleDone, remove as removeReminder } from "@/stores/remindersStore";
 import ToggleButton from "@/components/ToggleButton";
 
-/* --- Time helpers --- */
-const DAY = 24 * 60 * 60 * 1000;
-const startOfDay = (ms: number) => {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-};
-const getWhen = (r: any): number =>
-  r.when ?? r.whenMs ?? r.at ?? r.atMs ?? r.time ?? r.timeMs ?? 0;
-const getId = (r: any): string => r.id ?? String(getWhen(r));
-const getTitle = (r: any): string => r.title ?? r.text ?? "" as string;
-const getDone = (r: any): boolean =>
-  Boolean(r.done ?? r.completed ?? r.isDone ?? false);
-
-/* --- Row --- */
-type RowProps = {
+type Reminder = {
   id: string;
   title: string;
-  when: number;
-  done: boolean;
-  onToggle: (id: string, next: boolean) => void;
-  onDelete: (id: string) => void;
+  when: number; // ms since epoch
+  done?: boolean;
+  note?: string;
 };
 
-const Row = memo(function Row({
-  id,
-  title,
-  when,
-  done,
-  onToggle,
-  onDelete,
-}: RowProps) {
-  const onChange = useCallback((next: boolean) => onToggle(id, next), [id, onToggle]);
+function formatTime(ms: number) {
+  const d = new Date(ms);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "36px 1fr auto",
-        gap: 8,
-        alignItems: "center",
-      }}
-    >
-      <ToggleButton value={done} onChange={onChange} />
-      <div>
-        <div
-          style={{
-            fontWeight: 600,
-            textDecoration: done ? "line-through" : "none",
-          }}
-        >
-          {title}
-        </div>
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          {new Date(when).toLocaleDateString(undefined, {
-            month: "short",
-            day: "2-digit",
-          })}
-        </div>
-      </div>
-      <button
-        onClick={() => onDelete(id)}
-        style={{
-          border: "1px solid #ddd",
-          background: "#fff",
-          borderRadius: 8,
-          padding: "4px 8px",
-          cursor: "pointer",
-        }}
-      >
-        Delete
-      </button>
-    </div>
-  );
-});
+export default function RemindersWindow({ hideOverdue = false }: { hideOverdue?: boolean }) {
+  // subscribe
+  const tick = useReminders();
 
-/* --- Main --- */
-export default function RemindersWindow() {
-  // Selected day anchor
-  const selectedMs = useDateStore((s: any) => s.selected ?? s.now ?? Date.now());
-  const dayStart = startOfDay(selectedMs);
-  const dayEnd = dayStart + DAY;
+  // selected civil day
+  const selectedEday = useDateStore((s) => s.selected);
+  const selectedStart = dayMs(selectedEday);
+  const selectedEnd = selectedStart + DAY_MS;
 
-  // Subscribe once to the store. Prefer items + actions from the hook.
-  const { items, listAll, toggleDone, remove } = useReminders((s: any) => ({
-    items: s.items,               // if your store exposes items
-    listAll: s.listAll,           // if your store exposes a getter
-    toggleDone: s.toggleDone,
-    remove: s.remove,
-  }));
+  // derive
+  const { today, overdue } = useMemo(() => {
+    const all = listAll() as Reminder[];
+    const overdue = all.filter((r) => !r.done && r.when < selectedStart).sort((a, b) => a.when - b.when);
+    const today = all
+      .filter((r) => r.when >= selectedStart && r.when < selectedEnd)
+      .sort((a, b) => a.when - b.when);
+    return { today, overdue };
+  }, [tick, selectedStart, selectedEnd]);
 
-  // Source of truth: use listAll() if present, else items array.
-  const all: any[] = useMemo(() => {
+  const onToggle = useCallback((id: string, next: boolean) => {
     try {
-      return typeof listAll === "function" ? listAll() ?? [] : items ?? [];
+      // @ts-ignore tolerate both signatures
+      toggleDone(id, next);
     } catch {
-      return items ?? [];
+      // @ts-ignore legacy signature
+      toggleDone(id);
     }
-  }, [items, listAll]);
+  }, []);
 
-  // Stable action wrappers. Accept both signatures: (id,next) and (id).
-  const handleToggle = useCallback(
-    (id: string, next: boolean) => {
-      try {
-        toggleDone(id, next);
-      } catch {
-        toggleDone(id);
-      }
-    },
-    [toggleDone]
-  );
-
-  const handleDelete = useCallback((id: string) => remove(id), [remove]);
-
-  // Filter and sort by the selected day
-  const dayItems = useMemo(() => {
-    return all
-      .filter((r) => {
-        const w = getWhen(r);
-        return w >= dayStart && w < dayEnd;
-      })
-      .slice()
-      .sort((a, b) => getWhen(a) - getWhen(b));
-  }, [all, dayStart, dayEnd]);
+  const onRemove = useCallback((id: string) => removeReminder(id), []);
 
   return (
-    <section>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          margin: "12px 0 8px",
-        }}
-      >
-        <h3 style={{ margin: 0 }}>Reminders</h3>
-      </div>
+    <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
+      <header style={{ padding: "10px 12px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+        <div style={{ fontWeight: 800, letterSpacing: ".06em" }}>REMINDERS</div>
+        <div style={{ fontSize: 12, color: "#64748b" }}>
+          {new Date(selectedStart).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+        </div>
+      </header>
 
-      <div
-        style={{
-          border: "1px solid #e5e5e5",
-          borderRadius: 16,
-          padding: 12,
-          background: "#fff",
-          display: "grid",
-          gap: 12,
-        }}
-      >
-        {dayItems.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>No reminders for this day</div>
+      {!hideOverdue && (
+        <section style={{ padding: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>Overdue</div>
+          {overdue.length === 0 ? (
+            <div style={{ fontSize: 13, color: "#94a3b8" }}>Nothing overdue.</div>
+          ) : (
+            <div>
+              {overdue.map((r) => (
+                <Row key={r.id} r={r} onToggle={onToggle} onRemove={onRemove} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!hideOverdue && <hr style={{ margin: 0, border: 0, borderTop: "1px solid #e5e7eb" }} />}
+
+      <section style={{ padding: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>Today</div>
+        {today.length === 0 ? (
+          <div style={{ fontSize: 13, color: "#94a3b8" }}>No reminders today.</div>
         ) : (
-          <div style={{ display: "grid", gap: 8 }}>
-            {dayItems.map((r) => {
-              const id = getId(r);
-              const when = getWhen(r);
-              return (
-                <Row
-                  key={id}
-                  id={id}
-                  title={getTitle(r)}
-                  when={when}
-                  done={getDone(r)}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                />
-              );
-            })}
+          <div>
+            {today.map((r) => (
+              <Row key={r.id} r={r} onToggle={onToggle} onRemove={onRemove} />
+            ))}
           </div>
         )}
+      </section>
+    </div>
+  );
+}
+
+function Row({ r, onToggle, onRemove }: { r: Reminder; onToggle: (id: string, next: boolean) => void; onRemove: (id: string) => void }) {
+  const done = !!r.done;
+  return (
+    <div
+      role="listitem"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "28px 1fr auto auto",
+        gap: 8,
+        alignItems: "center",
+        padding: "6px 0",
+        borderBottom: "1px solid #f1f5f9",
+      }}
+    >
+      <ToggleButton checked={done} onChange={(next) => onToggle(r.id, next)} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 600, textDecoration: done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {r.title}
+        </div>
+        {r.note ? <div style={{ fontSize: 12, color: "#64748b" }}>{r.note}</div> : null}
       </div>
-    </section>
+      <div style={{ fontVariantNumeric: "tabular-nums", color: "#334155" }}>{formatTime(r.when)}</div>
+      <button
+        onClick={() => onRemove(r.id)}
+        style={{ border: 0, background: "transparent", color: "#dc2626", cursor: "pointer", padding: 4 }}
+        aria-label="Delete reminder"
+        title="Delete"
+      >
+        ✕
+      </button>
+    </div>
   );
 }

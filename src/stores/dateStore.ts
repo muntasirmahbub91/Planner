@@ -1,125 +1,141 @@
 // src/stores/dateStore.ts
 import { create } from "zustand";
 
-/* ========== Utilities (LOCAL timezone safe) ========== */
-// Local epoch-day: number of days since 1970-01-01 in the user's local timezone.
-export const epochDay = (d = new Date()) => {
-  const ms = d.getTime();
-  const tz = d.getTimezoneOffset() * 60_000; // minutes -> ms
-  return Math.floor((ms - tz) / 86_400_000);
+/** Milliseconds in one nominal day. Do not assume civil days are exactly 24h. */
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Week anchor: 0=Sun .. 6=Sat. Keep 6 to match reminders preset. */
+export const WEEK_START_DOW = 6;
+
+/**
+ * Convert various inputs into a Date (ms may be seconds if < 1e11).
+ * Accepts number | string | Date.
+ */
+function toDate(input?: number | string | Date): Date {
+  if (input instanceof Date) return new Date(input.getTime());
+  if (typeof input === "number") {
+    const ms = input < 1e11 ? input * 1000 : input;
+    return new Date(ms);
+  }
+  if (typeof input === "string") return new Date(input);
+  return new Date();
+}
+
+/**
+ * epochDay:
+ * Integer day index derived from the LOCAL calendar date but computed through UTC
+ * to avoid DST-length drift. Stable across DST boundaries.
+ *
+ * Algorithm:
+ *  - Take local Y/M/D from the given moment.
+ *  - Compute Date.UTC(Y,M,D) and divide by 86400000.
+ */
+export function epochDay(input?: number | string | Date): number {
+  const d = toDate(input);
+  const Y = d.getFullYear();
+  const M = d.getMonth();
+  const D = d.getDate();
+  const utcMidnight = Date.UTC(Y, M, D);
+  return Math.floor(utcMidnight / DAY_MS);
+}
+
+/**
+ * dayMs:
+ * Map an epochDay back to the LOCAL midnight time in milliseconds.
+ * Uses the UTC-derived date parts to reconstruct a local midnight, which
+ * keeps a one-to-one mapping without DST drift.
+ */
+export function dayMs(eDay: number): number {
+  const utc = new Date(eDay * DAY_MS); // UTC date corresponding to the epochDay
+  const Y = utc.getUTCFullYear();
+  const M = utc.getUTCMonth();
+  const D = utc.getUTCDate();
+  return new Date(Y, M, D).getTime(); // local midnight for that civil date
+}
+
+/** Add n days to an epochDay. */
+export function addDays(eDay: number, n: number): number {
+  return eDay + n;
+}
+
+/** Start of week (local midnight) containing anchorMs, using startDow anchor. */
+export function weekStartMs(anchorMs: number, startDow = WEEK_START_DOW): number {
+  const start = new Date(anchorMs);
+  start.setHours(0, 0, 0, 0);
+  const wd = start.getDay(); // local 0..6
+  const offset = (wd - startDow + 7) % 7;
+  return start.getTime() - offset * DAY_MS;
+}
+
+/** Inclusive-exclusive [start,end) interval for a civil day given epochDay. */
+export function dayRangeMs(eDay: number): { start: number; end: number } {
+  const start = dayMs(eDay);
+  return { start, end: start + DAY_MS };
+}
+
+/** Store state */
+type DateState = {
+  /** Today as epochDay (updated only on explicit calls). */
+  today: number;
+  /** Selected day as epochDay. */
+  selected: number;
+  /** Set selected by epochDay. */
+  setSelectedDay: (eDay: number) => void;
+  /** Set selected from any ms. */
+  setMs: (ms: number) => void;
+  /** Jump to today. */
+  selectToday: () => void;
 };
 
-// Local midnight (ms since epoch) for a given epoch-day.
-// Handles DST by using that day's own offset.
-export const dayMs = (eDay: number) => {
-  const utcMid = eDay * 86_400_000;
-  const tz = new Date(utcMid).getTimezoneOffset() * 60_000;
-  return utcMid + tz;
-};
+function computeTodayEday(): number {
+  return epochDay(Date.now());
+}
 
-const msToEpochDay = (ms: number) => epochDay(new Date(ms));
-
-/* ========== Formatters (accept epochDay) ========== */
-export const fmtDayTitle = (eDay: number) =>
-  new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(dayMs(eDay));
-export const fmtDaySubtitle = (eDay: number) =>
-  new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" })
-    .format(dayMs(eDay));
-export const fmtMonthTitle = (eDay: number) =>
-  new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(dayMs(eDay));
-export const fmtYear = (eDay: number) =>
-  new Intl.DateTimeFormat(undefined, { year: "numeric" }).format(dayMs(eDay));
-
-/* ========== Store ========== */
-type Follow = "today" | "dayview";
-type S = {
-  today: number;        // local epoch-day for real today
-  selected: number;     // day shown in DayView
-  followHabits: Follow; // habits anchor: today vs selected
-
-  setSelected: (d: number) => void;
-  setTodaySelected: () => void;
-  next: () => void;
-  prev: () => void;
-
-  setFollowHabits: (f: Follow) => void;
-};
-
-export const useDateStore = create<S>()((set) => {
-  const t = epochDay();
+/** Zustand store */
+export const useDateStore = create<DateState>((set, get) => {
+  const initial = computeTodayEday();
   return {
-    today: t,
-    selected: t,
-    followHabits: "dayview", // habits follow DayView by default
+    today: initial,
+    selected: initial,
 
-    setSelected: (d) => set({ selected: d }),
-    setTodaySelected: () => set({ selected: epochDay() }),
-    next: () => set((s) => ({ selected: s.selected + 1 })),
-    prev: () => set((s) => ({ selected: s.selected - 1 })),
+    setSelectedDay(eDay) {
+      set({ selected: eDay });
+    },
 
-    setFollowHabits: (f) => set({ followHabits: f }),
+    setMs(ms) {
+      set({ selected: epochDay(ms) });
+    },
+
+    selectToday() {
+      const t = computeTodayEday();
+      set({ today: t, selected: t });
+    },
   };
 });
 
-/* ========== Midnight refresh of `today` (local) ========== */
-function msUntilNextMidnight() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return next.getTime() - now.getTime();
+/** Convenience getters that do not re-render components. */
+export function getSelectedEpochDay(): number {
+  return useDateStore.getState().selected;
 }
-(function scheduleMidnightTick() {
-  const tick = () => {
-    const t = epochDay();
-    const { today } = useDateStore.getState();
-    if (today !== t) useDateStore.setState({ today: t });
-    setTimeout(tick, msUntilNextMidnight());
-  };
-  setTimeout(tick, msUntilNextMidnight());
-})();
+export function getSelectedMs(): number {
+  return dayMs(useDateStore.getState().selected);
+}
 
-/* ========== Convenience ========== */
-export const getSelected = () => useDateStore.getState().selected;
-export const setSelected = (d: number) => useDateStore.setState({ selected: d });
-export const next = () => useDateStore.getState().next();
-export const prev = () => useDateStore.getState().prev();
-export const today = () => useDateStore.getState().today;
-
-/* Habits anchor: last column = this value */
-export const habitsAnchorDay = () => {
-  const s = useDateStore.getState();
-  return s.followHabits === "dayview" ? s.selected : s.today;
-};
-
-/* ========== Legacy shims (compat with old API) ========== */
-export const setMs = (ms: number) =>
-  useDateStore.setState({ selected: msToEpochDay(ms) });
-export const getMs = () => dayMs(getSelected());
-export const todayMs = () => dayMs(today());
-export const shiftDays = (n: number) =>
-  useDateStore.setState((s) => ({ selected: s.selected + n }));
-export const prevDay = () => prev();
-export const nextDay = () => next();
-
-/* ========== Default aggregate (optional) ========== */
-export default {
-  useDateStore,
-  epochDay,
-  dayMs,
-  fmtDayTitle,
-  fmtDaySubtitle,
-  fmtMonthTitle,
-  fmtYear,
-  getSelected,
-  setSelected,
-  next,
-  prev,
-  today,
-  habitsAnchorDay,
-  // legacy
-  setMs,
-  getMs,
-  todayMs,
-  shiftDays,
-  prevDay,
-  nextDay,
-};
+/** Optional: tick today at local midnight. Call once at app boot if desired. */
+export function scheduleMidnightRollOver() {
+  const now = Date.now();
+  const d = new Date(now);
+  d.setHours(24, 0, 0, 0); // next local midnight
+  const delay = d.getTime() - now;
+  setTimeout(() => {
+    // Update today, keep selected unchanged unless it was equal to old today.
+    const prevToday = useDateStore.getState().today;
+    const newToday = computeTodayEday();
+    useDateStore.setState((s) => ({
+      today: newToday,
+      selected: s.selected === prevToday ? newToday : s.selected,
+    }));
+    // Schedule next midnight
+    scheduleMidnightRollOver();
+  }, Math.max(1000, delay)); // minimum 1s safeguard
+}

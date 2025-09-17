@@ -2,56 +2,67 @@
 import React from "react";
 import {
   useDateStore,
-  prev,
-  next,
-  fmtDayTitle,
-  fmtDaySubtitle,
+  dayMs,
+  DAY_MS,
 } from "@/stores/dateStore";
 
 import TasksSection from "@/sections/TasksSection";
+import RemindersWindow from "@/sections/RemindersWindow";
 import HabitsSection from "@/sections/HabitsSection";
 import "./DayView.css";
 
+// local navigation helpers using the store
+function goPrevDay() {
+  const s = useDateStore.getState();
+  const cur = dayMs(s.selected);
+  s.setMs(cur - DAY_MS);
+}
+function goNextDay() {
+  const s = useDateStore.getState();
+  const cur = dayMs(s.selected);
+  s.setMs(cur + DAY_MS);
+}
+
+// local title formatters (since dateStore doesn't export them)
+function fmtDayTitleLocal(eDay: number) {
+  const d = new Date(dayMs(eDay));
+  return d.toLocaleDateString(undefined, { weekday: "long" });
+}
+function fmtDaySubtitleLocal(eDay: number) {
+  const d = new Date(dayMs(eDay));
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function DayView() {
-  const selected = useDateStore((s) => s.selected);
+  const eDay = useDateStore((s) => s.selected);
   const setTodaySelected = useDateStore((s) => s.setTodaySelected);
 
-  const go = React.useCallback((dir: -1 | 1) => (dir < 0 ? prev() : next()), []);
+  const title = fmtDayTitleLocal(eDay);
+  const subtitle = fmtDaySubtitleLocal(eDay);
+
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any)?.isContentEditable)) return;
-      if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
-      if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); goPrevDay(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); goNextDay(); }
       if (e.key === "Home") { e.preventDefault(); setTodaySelected(); }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [go, setTodaySelected]);
-
-  const title = fmtDayTitle(selected);
-  const subtitle = fmtDaySubtitle(selected);
+  }, [setTodaySelected]);
 
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16 }}>
-      {/* Day banner */}
+      {/* Banner */}
       <section
         className="DateBanner DateBanner--day"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "32px 1fr 32px",
-          alignItems: "center",
-          gap: 8,
-          padding: "12px 12px",
-          minHeight: 64,
-        }}
+        style={{ display: "grid", gridTemplateColumns: "32px 1fr 32px", alignItems: "center", gap: 8, padding: "12px 12px", minHeight: 64 }}
         aria-label="Day navigation"
       >
-        <button type="button" aria-label="Previous day" className="DateBanner__chev" onClick={prev}>‹</button>
+        <button type="button" aria-label="Previous day" className="DateBanner__chev" onClick={goPrevDay}>‹</button>
         <div className="DateBanner__titles" style={{ display: "grid", alignContent: "center", justifyItems: "center", textAlign: "center" }}>
-          <div className="DateBanner__title" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>
-            {title}
-          </div>
+          <div className="DateBanner__title" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>{title}</div>
           <div className="DateBanner__subtitle" style={{ opacity: 0.7, fontSize: 14, lineHeight: 1.2, margin: 0, marginTop: 2 }}>
             {subtitle} ·{" "}
             <button
@@ -65,11 +76,13 @@ export default function DayView() {
             </button>
           </div>
         </div>
-        <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={next}>›</button>
+        <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={goNextDay}>›</button>
       </section>
 
       {/* Content */}
-      <section aria-label="Tasks"><TasksSection /></section><section aria-label="Habits"><HabitsSection /></section>
+      <section><TasksSection /></section>
+      <section><RemindersWindow hideOverdue /></section>
+      <section aria-label="Habits"><HabitsSection /></section>
     </main>
   );
 }
