@@ -1,0 +1,143 @@
+/* src/views/MonthView.css */
+
+/* layout */
+.mv {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* banner */
+.mv-banner {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  position: relative;      /* keep above grid */
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.mv-bannerCenter {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.mv-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mv-chev {
+  appearance: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.mv-todayBtn {
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+  color: #111;
+}
+
+/* weekday header */
+.mv-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.mv-weekCell {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* grid */
+.mv-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  position: relative;
+  z-index: 1;              /* lower than banner */
+}
+
+.mv-cell {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  min-height: 92px;
+  padding: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.mv-cell--muted {
+  opacity: 0.5;
+}
+
+.mv-cell--today {
+  box-shadow: inset 0 0 0 2px #111;
+}
+
+.mv-cellHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mv-dateNum {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.mv-count {
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+}
+
+.mv-items {
+  display: grid;
+  gap: 4px;
+}
+
+.mv-item {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.mv-item--done .mv-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.mv-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.mv-more {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ensure buttons always clickable even if a parent sets pointer-events */
+.mv-banner .mv-chev,
+.mv-todayBtn {
+  pointer-events: auto;
+}

@@ -1,60 +1,53 @@
-/* Projects — complete rewrite */
-:root { --proj-gap:14px; --proj-sep:#e5e7eb; --radius:12px; --ink:#111; }
+/* src/views/ProjectsView.css */
 
-/* Header + controls */
-.projects .prjHeader{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.projects .prjTitle{ font:800 26px/1.15 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; }
-.projects .seg{ border:1px solid var(--proj-sep); border-radius:999px; padding:2px; display:inline-flex; }
-.projects .seg-btn{ border:0; background:transparent; padding:8px 14px; border-radius:999px; cursor:pointer; font:600 14px/1 system-ui; color:var(--ink); }
-.projects .seg-btn.active{ background:var(--ink); color:#fff; }
-.projects .btn{ border:1px solid var(--proj-sep); background:#fff; color:var(--ink); border-radius:12px; padding:8px 12px; cursor:pointer; }
-.projects .btn--primary{ background:var(--ink); color:#fff; border-color:var(--ink); }
-
-/* Thick separator under toggle */
-.projects .projects__sep { height:2px; background:var(--proj-sep); margin:10px 0 12px; }
-
-/* Inline "Add Project" composer (no modal) */
-.projects .addProjectWrap{ display:grid; gap:10px; margin:6px 0 14px; }
-.projects .addProjectRow{ display:flex; align-items:center; gap:10px; }
+/* --- Base --- */
+:root { --proj-sep:#e5e7eb; --ink:#111; }
+.projects .chip{ border:1px solid var(--proj-sep); background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; }
+.projects .chip.danger{ border-color:#f3c7c7; color:#a52828; }
+.projects .btn{ border:1px solid var(--proj-sep); background:#fff; color:var(--ink); border-radius:12px; padding:8px 12px; }
+.projects .btn--primary{ background:#111; color:#fff; border-color:#111; }
 .projects .input, .projects input[type="text"], .projects textarea{
   border:1px solid var(--proj-sep); border-radius:10px; padding:10px 12px;
 }
-.projects .input{ flex:1 1 auto; min-width:200px; }
-.projects textarea{ width:100%; min-height:72px; }
 
-/* Typography hierarchy */
-.projects .projectTitle{ font:800 22px/1.2 system-ui; margin:12px 0 6px; }
-.projects .goalTitle{ font:700 18px/1.2 system-ui; margin:10px 0 6px; }
-.projects .taskTitle{ font:600 15px/1.2 system-ui; }
-
-/* Numbering: goals 1., tasks A. */
-.projects .projectBlock{ counter-reset: goal; }
-.projects .projectBlock .goalTitle{ counter-increment: goal; }
-.projects .projectBlock .goalTitle::before{ content: counter(goal) ". "; opacity:.85; margin-right:4px; }
-.projects .goalBlock{ counter-reset: task; }
-.projects .goalBlock .taskTitle{ counter-increment: task; }
-.projects .goalBlock .taskTitle::before{ content: counter(task, upper-alpha) ". "; opacity:.8; margin-right:4px; }
-
-/* Cards */
-.projects .card{ border:1px solid #f1f1f1; border-radius:16px; padding:12px; display:grid; gap:10px; }
-.projects .cardHead{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.projects .chip{ border:1px solid var(--proj-sep); background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; }
-.projects .chip.danger{ border-color:#f3c7c7; color:#a52828; }
-
-/* Lists */
-.projects .stack{ display:grid; gap:var(--proj-gap); }
-.projects .goalList, .projects .taskList{ display:grid; gap:10px; }
-
-/* Add task row: input expands, Add button pinned right */
-.projects .addTaskRow{ display:flex; align-items:center; gap:10px; }
-.projects .addTaskRow .input{ flex:1 1 auto; min-width:160px; }
-
-/* Task rows with right-aligned actions */
-.projects .taskRow{ display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #f1f1f1; border-radius:12px; }
+/* --- Task row container (wrap + let editor drop below) --- */
+.projects .taskRow{
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border:1px solid #f1f1f1; border-radius:12px; flex-wrap:wrap;
+}
 .projects .taskMain{ flex:1 1 auto; min-width:0; }
 .projects .actions{ margin-left:auto; display:flex; gap:8px; align-items:center; }
+.projects .taskRow.editing .actions{ display:none; }  /* hide chips when editing */
+.projects .taskRow .sheet{ flex:1 1 100%; }          /* force editor onto new line */
 
+/* --- Inline editor sheet (single definition) --- */
+.projects .sheet{
+  max-width:480px; width:100%;
+  display:grid; gap:10px; padding:12px;
+  border:1px solid #f1f1f1; border-radius:16px; background:#fff;
+  position:relative; /* z-index safety for inputs */
+}
+
+/* --- Explicit rows --- */
+.projects .controlsRow,
+.projects .scheduleRow,
+.projects .actionsRow{ display:flex; align-items:center; gap:10px; }
+
+/* Row 3: Calendar + U + I — small, clickable calendar */
+.projects .scheduleRow .input.date{
+  flex:0 0 110px; width:110px; height:32px; padding:4px 8px;
+  appearance:auto; -webkit-appearance:menulist; /* Safari */
+  pointer-events:auto; position:relative; z-index:1;
+}
+.projects .scheduleRow .chip{ height:32px; position:relative; z-index:0; }
+
+/* Row 4: Save/Cancel right aligned */
+.projects .actionsRow{ justify-content:flex-end; }
+
+/* Selected state for U / I */
+.projects .chip.is-on{ background:#111; color:#fff; border-color:#111; }
+
+/* Text bits */
 .projects .rowMeta{ font-size:12px; opacity:.7; }
 .projects .done{ text-decoration:line-through; opacity:.6; }
-
 .projects .empty{ opacity:.6; padding:6px 0; }

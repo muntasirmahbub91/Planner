@@ -1,17 +1,11 @@
-// src/views/DayView.tsx
 import React from "react";
-import {
-  useDateStore,
-  dayMs,
-  DAY_MS,
-} from "@/stores/dateStore";
-
+import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
 import TasksSection from "@/sections/TasksSection";
 import RemindersWindow from "@/sections/RemindersWindow";
 import HabitsSection from "@/sections/HabitsSection";
 import "./DayView.css";
 
-// local navigation helpers using the store
+// Local navigation via store getters avoids extra subscriptions
 function goPrevDay() {
   const s = useDateStore.getState();
   const cur = dayMs(s.selected);
@@ -23,23 +17,29 @@ function goNextDay() {
   s.setMs(cur + DAY_MS);
 }
 
-// local title formatters (since dateStore doesn't export them)
-function fmtDayTitleLocal(eDay: number) {
+function fmtDayTitle(eDay: number) {
   const d = new Date(dayMs(eDay));
   return d.toLocaleDateString(undefined, { weekday: "long" });
 }
-function fmtDaySubtitleLocal(eDay: number) {
+function fmtDaySubtitle(eDay: number) {
   const d = new Date(dayMs(eDay));
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function DayView() {
+  // Narrow selector: only subscribe to the primitive `selected` value
   const eDay = useDateStore((s) => s.selected);
   const setTodaySelected = useDateStore((s) => s.setTodaySelected);
 
-  const title = fmtDayTitleLocal(eDay);
-  const subtitle = fmtDaySubtitleLocal(eDay);
+  // Memoize derived UI strings to avoid recomputation on unrelated renders
+  const title = React.useMemo(() => fmtDayTitle(eDay), [eDay]);
+  const subtitle = React.useMemo(() => fmtDaySubtitle(eDay), [eDay]);
 
+  // Keyboard navigation without subscribing this component to other stores
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -62,7 +62,7 @@ export default function DayView() {
       >
         <button type="button" aria-label="Previous day" className="DateBanner__chev" onClick={goPrevDay}>‹</button>
         <div className="DateBanner__titles" style={{ display: "grid", alignContent: "center", justifyItems: "center", textAlign: "center" }}>
-          <div className="DateBanner__title" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>{title}</div>
+          <div className="DateBanner__title" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }} aria-live="polite">{title}</div>
           <div className="DateBanner__subtitle" style={{ opacity: 0.7, fontSize: 14, lineHeight: 1.2, margin: 0, marginTop: 2 }}>
             {subtitle} ·{" "}
             <button
@@ -79,7 +79,7 @@ export default function DayView() {
         <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={goNextDay}>›</button>
       </section>
 
-      {/* Content */}
+      {/* Content: sections implement their own narrow selectors */}
       <section><TasksSection /></section>
       <section><RemindersWindow hideOverdue /></section>
       <section aria-label="Habits"><HabitsSection /></section>

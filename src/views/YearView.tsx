@@ -1,4 +1,3 @@
-// src/views/YearView.tsx
 import React from "react";
 import "./YearView.css";
 import { setView, type View } from "@/stores/viewStore";
@@ -42,7 +41,8 @@ function quarterWeekStarts(year: number, q: 1 | 2 | 3 | 4): number[] {
 }
 
 function WeeklyRow({ weekStart, onOpenWeek }: { weekStart: number; onOpenWeek: (ms: number) => void }) {
-  useWeeklyGoals(); // subscribe
+  // Subscribe for reactivity without pulling global state into parent
+  useWeeklyGoals();
 
   const goalsRec = getWeek(weekStart).goals;
   const items = Object.keys(goalsRec);
@@ -63,7 +63,7 @@ function WeeklyRow({ weekStart, onOpenWeek }: { weekStart: number; onOpenWeek: (
 
   return (
     <div className="yvWeekRow">
-      <button className="yvWeekBtn" onClick={() => onOpenWeek(weekStart)} aria-label={`Open ${code}`}>
+      <button type="button" className="yvWeekBtn" onClick={() => onOpenWeek(weekStart)} aria-label={`Open ${code}`}>
         <div className="yvWeekCode">{code}</div>
         <div className="yvWeekSub">{sub}</div>
       </button>
@@ -74,10 +74,8 @@ function WeeklyRow({ weekStart, onOpenWeek }: { weekStart: number; onOpenWeek: (
             return (
               <div className="yvGoalItem" key={g}>
                 <ToggleButton checked={checked} onChange={() => toggleGoal(weekStart, g)} />
-                <div className="yvGoalText" style={{ textDecoration: checked ? "line-through" : "none" }}>
-                  {g}
-                </div>
-                <button className="yvRemove" onClick={() => clearGoal(weekStart, g)} aria-label={`Remove ${g}`}>
+                <div className="yvGoalText" style={{ textDecoration: checked ? "line-through" : "none" }}>{g}</div>
+                <button type="button" className="yvRemove" onClick={() => clearGoal(weekStart, g)} aria-label={`Remove ${g}`}>
                   Remove
                 </button>
               </div>
@@ -114,49 +112,58 @@ function WeeklyRow({ weekStart, onOpenWeek }: { weekStart: number; onOpenWeek: (
 }
 
 export default function YearView() {
+  // Narrow selector: only the selected epoch-day from date store
   const selectedMs = useDateStore((s) => dayMs(s.selected));
   const year = new Date(selectedMs).getFullYear();
 
-  const openWeek = (weekMs: number) => {
+  const openWeek = React.useCallback((weekMs: number) => {
     useDateStore.getState().setMs(weekMs);
     setView("week" as View);
-  };
-  const go = (delta: number) => {
+  }, []);
+
+  const go = React.useCallback((delta: number) => {
     const d = new Date(selectedMs);
     d.setFullYear(d.getFullYear() + delta);
     d.setHours(0, 0, 0, 0);
     useDateStore.getState().setMs(d.getTime());
-  };
+  }, [selectedMs]);
 
   const m = new Date(selectedMs).getMonth();
   const currentQ = (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4;
 
   const [openQs, setOpenQs] = React.useState<Set<1 | 2 | 3 | 4>>(new Set([currentQ]));
-  const toggleQ = (q: 1 | 2 | 3 | 4) =>
+  const toggleQ = React.useCallback((q: 1 | 2 | 3 | 4) =>
     setOpenQs((prev) => {
       const next = new Set(prev);
       next.has(q) ? next.delete(q) : next.add(q);
       return next;
-    });
+    }), []);
+
+  const qWeeks = React.useMemo(() => ({
+    1: quarterWeekStarts(year, 1),
+    2: quarterWeekStarts(year, 2),
+    3: quarterWeekStarts(year, 3),
+    4: quarterWeekStarts(year, 4),
+  }), [year]);
 
   return (
     <div className="yvContainer">
       <div className="yvBannerWrap">
         <div className="yvBanner">
-          <button className="yvChev" aria-label="Previous year" onClick={() => go(-1)}>‹</button>
+          <button type="button" className="yvChev" aria-label="Previous year" onClick={() => go(-1)}>‹</button>
           <div style={{ textAlign: "center" }}>
-            <div className="yvTitle">{`YEAR ${year}`}</div>
+            <div className="yvTitle" aria-live="polite">{`YEAR ${year}`}</div>
             <div className="yvSubTitle">{`JAN–DEC, ${year}`}</div>
           </div>
-          <button className="yvChev" aria-label="Next year" onClick={() => go(+1)}>›</button>
+          <button type="button" className="yvChev" aria-label="Next year" onClick={() => go(+1)}>›</button>
         </div>
       </div>
 
       <div className="yvQGrid">
-        <QuarterSection label="Q1" months="JAN–MAR" year={year} q={1} isOpen={openQs.has(1)} onToggle={() => toggleQ(1)} onOpenWeek={openWeek} />
-        <QuarterSection label="Q2" months="APR–JUN" year={year} q={2} isOpen={openQs.has(2)} onToggle={() => toggleQ(2)} onOpenWeek={openWeek} />
-        <QuarterSection label="Q3" months="JUL–SEP" year={year} q={3} isOpen={openQs.has(3)} onToggle={() => toggleQ(3)} onOpenWeek={openWeek} />
-        <QuarterSection label="Q4" months="OCT–DEC" year={year} q={4} isOpen={openQs.has(4)} onToggle={() => toggleQ(4)} onOpenWeek={openWeek} />
+        <QuarterSection label="Q1" months="JAN–MAR" year={year} q={1} isOpen={openQs.has(1)} onToggle={() => toggleQ(1)} onOpenWeek={openWeek} weeks={qWeeks[1]} />
+        <QuarterSection label="Q2" months="APR–JUN" year={year} q={2} isOpen={openQs.has(2)} onToggle={() => toggleQ(2)} onOpenWeek={openWeek} weeks={qWeeks[2]} />
+        <QuarterSection label="Q3" months="JUL–SEP" year={year} q={3} isOpen={openQs.has(3)} onToggle={() => toggleQ(3)} onOpenWeek={openWeek} weeks={qWeeks[3]} />
+        <QuarterSection label="Q4" months="OCT–DEC" year={year} q={4} isOpen={openQs.has(4)} onToggle={() => toggleQ(4)} onOpenWeek={openWeek} weeks={qWeeks[4]} />
       </div>
     </div>
   );
@@ -170,6 +177,7 @@ function QuarterSection({
   isOpen,
   onToggle,
   onOpenWeek,
+  weeks,
 }: {
   label: "Q1" | "Q2" | "Q3" | "Q4";
   months: string;
@@ -178,10 +186,10 @@ function QuarterSection({
   isOpen: boolean;
   onToggle: () => void;
   onOpenWeek: (ms: number) => void;
+  weeks: number[];
 }) {
-  const weeks = quarterWeekStarts(year, q);
   return (
-    <section className={`yvQuarter ${!isOpen ? "yvCollapsed" : ""}`}>
+    <section className={`yvQuarter ${!isOpen ? "yvCollapsed" : ""}`}> 
       <div className="yvHeader" onClick={onToggle} role="button" aria-expanded={isOpen} aria-label={`Toggle ${label}`}>
         <div className="yvHLeft">
           <div className="yvQLabel">{label}</div>

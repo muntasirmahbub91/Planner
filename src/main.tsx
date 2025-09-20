@@ -6,14 +6,32 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+
+import { warnIfStorageUnavailable } from "@/app/initStorageGuard";
 import { useHabitsStore } from "@/stores/habitsStore";
-import { scheduleMidnightRollOver } from "@/stores/dateStore";
+import { useTasks } from "@/stores/tasksStore";
+import { useReminders } from "@/stores/remindersStore";
+import { useDateStore, scheduleMidnightRollOver, dayMs } from "@/stores/dateStore";
 
-// Eager rehydrate to avoid first-frame empty UI
+// Storage sanity
+warnIfStorageUnavailable();
+
+// Eager rehydrate persisted slices before first paint
 useHabitsStore.persist?.rehydrate?.();
+useTasks.persist?.rehydrate?.();
+useReminders.persist?.rehydrate?.();
 
-// Keep 'today' in sync across local midnights
+// Keep “today” in sync across local midnights
 scheduleMidnightRollOver();
+
+// Also refresh on tab focus (covers long-suspended tabs)
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    const ds = useDateStore.getState();
+    const today = dayMs(Date.now());
+    if (dayMs(ds.selected) !== today) ds.setTodaySelected?.();
+  }
+});
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");

@@ -1,124 +1,131 @@
-import React, { useMemo, useCallback } from "react";
+// src/sections/RemindersWindow.tsx
+import React, { useMemo } from "react";
+import { useReminders, type Reminder } from "@/stores/remindersStore";
 import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
-import { useReminders, listAll, toggleDone, remove as removeReminder } from "@/stores/remindersStore";
-import ToggleButton from "@/components/ToggleButton";
 
-type Reminder = {
-  id: string;
-  title: string;
-  when: number; // ms since epoch
-  done?: boolean;
-  note?: string;
+/* helpers */
+const baseTime = (r: Reminder) => r.snoozeMs ?? r.atMs;
+const spanMs = (r: Reminder) => Math.max(1, r.windowDays ?? 7) * DAY_MS;
+
+// Visible only if the SELECTED DAY lies within [base - span, base + span]
+const isVisibleOn = (r: Reminder, refEndOfDayMs: number) => {
+  const b = baseTime(r);
+  const s = spanMs(r);
+  return refEndOfDayMs >= b - s && refEndOfDayMs <= b + s;
 };
 
-function formatTime(ms: number) {
-  const d = new Date(ms);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+type Props = { hideOverdue?: boolean };
 
-export default function RemindersWindow({ hideOverdue = false }: { hideOverdue?: boolean }) {
-  // subscribe
-  const tick = useReminders();
+export default function RemindersWindow({ hideOverdue }: Props) {
+  // Selected day frame and reference (end of selected day)
+  const selected = useDateStore((s) => s.selected);
+  const startMs = dayMs(selected);
+  const endMs = startMs + DAY_MS;
+  const refMs = endMs - 1;
 
-  // selected civil day
-  const selectedEday = useDateStore((s) => s.selected);
-  const selectedStart = dayMs(selectedEday);
-  const selectedEnd = selectedStart + DAY_MS;
+  // Data
+  const byId = useReminders((s) => s.byId);
+  const order = useReminders((s) => s.order);
 
-  // derive
-  const { today, overdue } = useMemo(() => {
-    const all = listAll() as Reminder[];
-    const overdue = all.filter((r) => !r.done && r.when < selectedStart).sort((a, b) => a.when - b.when);
-    const today = all
-      .filter((r) => r.when >= selectedStart && r.when < selectedEnd)
-      .sort((a, b) => a.when - b.when);
-    return { today, overdue };
-  }, [tick, selectedStart, selectedEnd]);
+  // Filter by per-reminder window around its own time, relative to the selected day
+  const visible = useMemo(() => {
+    const arr = order.map((id) => byId[id]).filter(Boolean) as Reminder[];
+    return arr.filter((r) => isVisibleOn(r, refMs));
+  }, [order, byId, refMs]);
 
-  const onToggle = useCallback((id: string, next: boolean) => {
-    try {
-      // @ts-ignore tolerate both signatures
-      toggleDone(id, next);
-    } catch {
-      // @ts-ignore legacy signature
-      toggleDone(id);
-    }
-  }, []);
+  const sortByTime = (a: Reminder, b: Reminder) => baseTime(a) - baseTime(b);
 
-  const onRemove = useCallback((id: string) => removeReminder(id), []);
+  const todays = useMemo(
+    () => visible.filter((r) => { const t = baseTime(r); return t >= startMs && t < endMs; }).sort(sortByTime),
+    [visible, startMs, endMs]
+  );
+  const overdue = useMemo(
+    () => visible.filter((r) => !r.done && baseTime(r) < startMs).sort(sortByTime),
+    [visible, startMs]
+  );
+  const upcoming = useMemo(
+    () => visible.filter((r) => baseTime(r) >= endMs).sort(sortByTime),
+    [visible, endMs]
+  );
 
   return (
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
-      <header style={{ padding: "10px 12px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-        <div style={{ fontWeight: 800, letterSpacing: ".06em" }}>REMINDERS</div>
-        <div style={{ fontSize: 12, color: "#64748b" }}>
-          {new Date(selectedStart).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-        </div>
-      </header>
+    <section aria-label="Reminders" style={{ display: "grid", gap: 12 }}>
+      <h3 style={{ margin: "32px 0 0", fontWeight: 800 }}>REMINDERS</h3>
 
-      {!hideOverdue && (
-        <section style={{ padding: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>Overdue</div>
-          {overdue.length === 0 ? (
-            <div style={{ fontSize: 13, color: "#94a3b8" }}>Nothing overdue.</div>
-          ) : (
-            <div>
-              {overdue.map((r) => (
-                <Row key={r.id} r={r} onToggle={onToggle} onRemove={onRemove} />
-              ))}
-            </div>
-          )}
-        </section>
+      {!hideOverdue && overdue.length > 0 && (
+        <Block title="Overdue">
+          <List items={overdue} />
+        </Block>
       )}
 
-      {!hideOverdue && <hr style={{ margin: 0, border: 0, borderTop: "1px solid #e5e7eb" }} />}
+      <Block title="Today">
+        {todays.length === 0 ? <Empty text="No reminders" /> : <List items={todays} />}
+      </Block>
 
-      <section style={{ padding: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>Today</div>
-        {today.length === 0 ? (
-          <div style={{ fontSize: 13, color: "#94a3b8" }}>No reminders today.</div>
-        ) : (
-          <div>
-            {today.map((r) => (
-              <Row key={r.id} r={r} onToggle={onToggle} onRemove={onRemove} />
-            ))}
-          </div>
-        )}
-      </section>
+      {upcoming.length > 0 && (
+        <Block title="Upcoming">
+          <List items={upcoming} />
+        </Block>
+      )}
+    </section>
+  );
+}
+
+/* minimal subcomponents */
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>{title}</div>
+      {children}
     </div>
   );
 }
 
-function Row({ r, onToggle, onRemove }: { r: Reminder; onToggle: (id: string, next: boolean) => void; onRemove: (id: string) => void }) {
-  const done = !!r.done;
+function Empty({ text }: { text: string }) {
+  return <div style={{ opacity: 0.6 }}>{text}</div>;
+}
+
+function List({ items }: { items: Reminder[] }) {
   return (
-    <div
-      role="listitem"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "28px 1fr auto auto",
-        gap: 8,
-        alignItems: "center",
-        padding: "6px 0",
-        borderBottom: "1px solid #f1f5f9",
-      }}
-    >
-      <ToggleButton checked={done} onChange={(next) => onToggle(r.id, next)} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 600, textDecoration: done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.title}
-        </div>
-        {r.note ? <div style={{ fontSize: 12, color: "#64748b" }}>{r.note}</div> : null}
-      </div>
-      <div style={{ fontVariantNumeric: "tabular-nums", color: "#334155" }}>{formatTime(r.when)}</div>
-      <button
-        onClick={() => onRemove(r.id)}
-        style={{ border: 0, background: "transparent", color: "#dc2626", cursor: "pointer", padding: 4 }}
-        aria-label="Delete reminder"
-        title="Delete"
-      >
-        ✕
-      </button>
+    <div style={{ display: "grid", gap: 8 }}>
+      {items.map((r) => {
+        const dt = new Date(baseTime(r));
+        const date = new Intl.DateTimeFormat(undefined, { month: "short", day: "2-digit" }).format(dt);
+        const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(dt);
+        return (
+          <div
+            key={r.id}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              alignItems: "center",
+              gap: 8,
+              padding: 8,
+              border: "1px solid #eee",
+              borderRadius: 12,
+              background: "#fff",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  textDecoration: r.done ? "line-through" : "none",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {r.title || "(untitled)"}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                {date} · {time}
+              </div>
+            </div>
+            {/* read-only; no controls */}
+          </div>
+        );
+      })}
     </div>
   );
 }
