@@ -7,16 +7,22 @@ import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
 import Modal from "@/components/Modal";
 
-/* helpers */
-function toDateInputValue(ms: number) {
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
+/* date helpers: no native <input type="date"> anywhere */
+function toYmdFromMs(ms: number) {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function fromDateInputValue(v: string) {
+function ymdToMs(v: string) {
   const [y, m, d] = v.split("-").map((x) => parseInt(x, 10));
   const dt = new Date(y, (m || 1) - 1, d || 1);
   dt.setHours(0, 0, 0, 0);
   return dt.getTime();
+}
+function toYmd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default function TasksSection() {
@@ -24,13 +30,13 @@ export default function TasksSection() {
   const startMs = dayMs(selectedEpochDay);
   const endMs = startMs + DAY_MS;
 
-  /* subscribe to primitive slices only */
+  /* store slices */
   const byId = useTasks((s) => s.byId);
   const order = useTasks((s) => s.order);
   const addTask = useTasks((s) => s.add);
   const updateTask = useTasks((s) => s.update);
 
-  /* derive lists in-mem to avoid array selectors in the hook */
+  /* derive for the selected day */
   const items: Task[] = useMemo(
     () =>
       order
@@ -48,38 +54,23 @@ export default function TasksSection() {
     };
   }, [items]);
 
-  /* modal */
+  /* modal state */
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [dateVal, setDateVal] = useState<string>(toDateInputValue(startMs));
+  const [dateVal, setDateVal] = useState<string>(toYmdFromMs(startMs)); // YYYY-MM-DD
   const [urgent, setUrgent] = useState(false);
   const [important, setImportant] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
 
-  const openPicker = useCallback(() => {
-    const el = dateRef.current;
-    if (!el) return;
-    (el as any).showPicker?.() ?? el.click();
-    el.focus();
-  }, []);
-
-  useEffect(() => {
-    if (open) queueMicrotask(() => titleRef.current?.focus());
-  }, [open]);
-
-  useEffect(() => {
-    setDateVal(toDateInputValue(startMs));
-  }, [startMs]);
-
+  /* open/close */
   const openModal = useCallback(() => {
     setTitle("");
     setUrgent(false);
     setImportant(false);
     setError(null);
-    setDateVal(toDateInputValue(startMs));
+    setDateVal(toYmdFromMs(startMs));
     setOpen(true);
   }, [startMs]);
 
@@ -88,6 +79,7 @@ export default function TasksSection() {
     setError(null);
   }, []);
 
+  /* commit add */
   const commitAdd = useCallback(() => {
     const text = title.trim();
     if (!text) return;
@@ -96,28 +88,25 @@ export default function TasksSection() {
       return;
     }
     try {
-      const dueMs = fromDateInputValue(dateVal);
+      const dueMs = ymdToMs(dateVal);
       addTask({ title: text, dueMs, urgent, important });
       setOpen(false);
       setTitle("");
       setError(null);
     } catch (e: any) {
-      setError(e?.message || "Could not add task.");
+      setError(e?.message || "Failed to add task.");
     }
-  }, [title, dateVal, urgent, important, active.length, addTask]);
+  }, [title, dateVal, urgent, important, addTask, active.length]);
 
-  const onKeys: React.KeyboardEventHandler = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        commitAdd();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        closeModal();
-      }
-    },
-    [commitAdd, closeModal]
-  );
+  /* focus title */
+  useEffect(() => {
+    if (open) queueMicrotask(() => titleRef.current?.focus());
+  }, [open]);
+
+  /* keep date synced with selected day */
+  useEffect(() => {
+    setDateVal(toYmdFromMs(startMs));
+  }, [startMs]);
 
   return (
     <section>
@@ -135,7 +124,19 @@ export default function TasksSection() {
             const toggle = () => updateTask(t.id, { done: !done, completedAt: !done ? Date.now() : undefined });
             const clear = () => updateTask(t.id, { dueMs: null });
             return (
-              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 8, alignItems: "center" }}>
+              <div
+                key={t.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "32px 1fr auto",
+                  gap: 8,
+                  alignItems: "center",
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: "8px 10px",
+                }}
+              >
                 <ToggleButton checked={done} onChange={toggle} />
                 <div>
                   <div style={{ fontWeight: 600, textDecoration: done ? "line-through" : "none" }}>{t.title}</div>
@@ -151,13 +152,23 @@ export default function TasksSection() {
       )}
 
       {completed.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7, marginBottom: 6 }}>Completed today</div>
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 6 }}>Completed</div>
           <div style={{ display: "grid", gap: 6 }}>
             {completed.map((t) => (
-              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "28px 1fr", gap: 8, alignItems: "center", opacity: 0.7 }}>
-                <ToggleButton checked readOnly />
-                <div style={{ textDecoration: "line-through" }}>{t.title}</div>
+              <div
+                key={t.id}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  border: "1px dashed #e5e7eb",
+                  background: "#fafafa",
+                  borderRadius: 10,
+                  padding: "6px 8px",
+                }}
+              >
+                ✅ <div style={{ textDecoration: "line-through" }}>{t.title}</div>
               </div>
             ))}
           </div>
@@ -165,42 +176,124 @@ export default function TasksSection() {
       )}
 
       <Modal open={open} onClose={closeModal} title="Add task">
-        <div onKeyDown={onKeys} style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-          <input
-            ref={titleRef}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task title…"
-            aria-label="Task title"
-            maxLength={50}
-            style={{ flex: "1 1 100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 10 }}
-          />
-          <input
-            ref={dateRef}
-            type="date"
-            value={dateVal}
-            onChange={(e) => setDateVal(e.target.value)}
-            aria-label="Date"
-            style={{ position: "fixed", left: -9999, top: -9999, opacity: 0, width: 1, height: 1 }}
-          />
-          <button type="button" onClick={openPicker} aria-label="Pick date" style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 10, padding: "8px 12px", cursor: "pointer" }}>
-            📅
-          </button>
-          <button type="button" aria-pressed={urgent} onClick={() => setUrgent((v) => !v)} title="Urgent" style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #d1d5db", background: urgent ? "#fee2e2" : "#fff", cursor: "pointer", fontWeight: 700 }}>
-            U
-          </button>
-          <button type="button" aria-pressed={important} onClick={() => setImportant((v) => !v)} title="Important" style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #d1d5db", background: important ? "#fef9c3" : "#fff", cursor: "pointer", fontWeight: 700 }}>
-            I
-          </button>
+        <div style={{ display: "grid", gap: 12 }}>
+          {error ? (
+            <div
+              role="alert"
+              style={{
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#991b1b",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          {/* Title + flags */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              ref={titleRef}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Task title…"
+              aria-label="Task title"
+              maxLength={50}
+              style={{ flex: "1 1 100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 10 }}
+            />
+            <button
+              type="button"
+              title="Urgent"
+              aria-pressed={urgent}
+              onClick={() => setUrgent((v) => !v)}
+              style={{
+                width: 36,
+                height: 36,
+                border: "1px solid #e5e7eb",
+                background: urgent ? "#fee2e2" : "#fff",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              U
+            </button>
+            <button
+              type="button"
+              title="Important"
+              aria-pressed={important}
+              onClick={() => setImportant((v) => !v)}
+              style={{
+                width: 36,
+                height: 36,
+                border: "1px solid #e5e7eb",
+                background: important ? "#fef9c3" : "#fff",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              I
+            </button>
+          </div>
+
+          {/* INLINE calendar inside modal. No popover. No native input. */}
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              background: "#fff",
+              boxShadow: "0 10px 30px rgba(0,0,0,.06)",
+              padding: 8,
+            }}
+          >
+            <DayPicker
+              mode="single"
+              weekStartsOn={1}
+              selected={new Date(dateVal)}
+              onSelect={(d) => {
+                if (!d) return;
+                setDateVal(toYmd(d)); // keep YYYY-MM-DD for commitAdd
+              }}
+            />
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+              Selected: {dateVal}
+            </div>
+          </div>
+
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={commitAdd} disabled={!title.trim()} style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #111", background: "#111", color: "#fff", fontWeight: 800, cursor: title.trim() ? "pointer" : "not-allowed" }}>
+            <button
+              onClick={commitAdd}
+              disabled={!title.trim()}
+              style={{
+                border: "1px solid #16a34a",
+                background: "#22c55e",
+                color: "#fff",
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontWeight: 800,
+                cursor: title.trim() ? "pointer" : "not-allowed",
+              }}
+            >
               Save
             </button>
-            <button onClick={closeModal} style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #ddd", background: "#fff", fontWeight: 700 }}>
+            <button
+              onClick={closeModal}
+              style={{
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
               Cancel
             </button>
           </div>
-          {error && <div style={{ flexBasis: "100%", color: "#b00020", fontSize: 12 }}>{error}</div>}
         </div>
       </Modal>
     </section>
