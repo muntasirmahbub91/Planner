@@ -23,8 +23,11 @@ const addDays = (anchor: Date, n: number) => new Date(anchor.getTime() + n * DAY
 const isDone = (t: Partial<Task>) => !!t.done;
 const dowClass = (d: Date) => ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][d.getDay()];
 const fmtBadgeDay = (d: Date) => new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(d).toUpperCase();
-const fmtBadgeDate = (d: Date) =>
-  `${d.getDate()} ${new Intl.DateTimeFormat(undefined, { month: "long" }).format(d).toUpperCase()}`;
+
+/* CHANGED: short month label -> “21 Sept” */
+const MMM = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+const fmtBadgeDate = (d: Date) => `${d.getDate()} ${MMM[d.getMonth()]}`;
+
 const fmtSubTitle = (d: Date) =>
   `${d.getDate()} ${new Intl.DateTimeFormat(undefined, { month: "long" }).format(d).toUpperCase()}, ${d.getFullYear()}`;
 

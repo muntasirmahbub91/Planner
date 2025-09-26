@@ -1,3 +1,4 @@
+// src/views/YearView.tsx
 import React from "react";
 import "./YearView.css";
 import { setView, type View } from "@/stores/viewStore";
@@ -10,111 +11,102 @@ import ToggleButton from "@/components/ToggleButton";
 const MS_DAY = 24 * 60 * 60 * 1000;
 const MS_WEEK = 7 * MS_DAY;
 
-function startOfWeek(ms: number) {
-  return weekStartMs(ms, WEEK_START_DOW);
-}
-function startOfQuarter(year: number, q: 1 | 2 | 3 | 4) {
-  const m = (q - 1) * 3;
-  const d = new Date(year, m, 1);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-function nextQuarterStart(year: number, q: 1 | 2 | 3 | 4) {
-  return q < 4 ? startOfQuarter(year, (q + 1) as 2 | 3 | 4) : startOfQuarter(year + 1, 1);
-}
-function weekNumberOfYear(weekStart: number): number {
+function startOfWeek(ms: number) { return weekStartMs(ms, WEEK_START_DOW); }
+function startOfQuarter(year: number, q: 1|2|3|4) { const m = (q - 1) * 3; const d = new Date(year, m, 1); d.setHours(0,0,0,0); return d.getTime(); }
+function nextQuarterStart(year: number, q: 1|2|3|4) { return q < 4 ? startOfQuarter(year, (q + 1) as 2|3|4) : startOfQuarter(year + 1, 1); }
+function weekNumberOfYear(weekStart: number) {
   const d = new Date(weekStart);
   const yearStart = startOfWeek(new Date(d.getFullYear(), 0, 1).getTime());
   return Math.floor((weekStart - yearStart) / MS_WEEK) + 1;
 }
-function quarterWeekStarts(year: number, q: 1 | 2 | 3 | 4): number[] {
-  const qStart = startOfQuarter(year, q);
-  const qEnd = nextQuarterStart(year, q);
-  let w = startOfWeek(qStart);
-  if (w < qStart) w += MS_WEEK;
-  const out: number[] = [];
-  while (w < qEnd) {
-    out.push(w);
-    w += MS_WEEK;
-  }
+function quarterWeekStarts(year: number, q: 1|2|3|4): number[] {
+  const qStart = startOfQuarter(year, q), qEnd = nextQuarterStart(year, q);
+  let w = startOfWeek(qStart); if (w < qStart) w += MS_WEEK;
+  const out: number[] = []; while (w < qEnd) { out.push(w); w += MS_WEEK; }
   return out;
 }
 
-function WeeklyRow({ weekStart, onOpenWeek }: { weekStart: number; onOpenWeek: (ms: number) => void }) {
-  // Subscribe for reactivity without pulling global state into parent
-  useWeeklyGoals();
-
+/* ---------- Weekly row (header above box, X remove, collapsed past) ---------- */
+function WeeklyRow({
+  weekStart, onOpenWeek, currentWeekStart,
+}: { weekStart: number; onOpenWeek: (ms: number) => void; currentWeekStart: number; }) {
+  useWeeklyGoals(); // subscribe
   const goalsRec = getWeek(weekStart).goals;
   const items = Object.keys(goalsRec);
 
+  const [open, setOpen] = React.useState<boolean>(weekStart >= currentWeekStart);
   const [compose, setCompose] = React.useState(false);
   const [draft, setDraft] = React.useState("");
 
   const code = `W${String(weekNumberOfYear(weekStart)).padStart(2, "0")}`;
-  const sub = new Date(weekStart).toLocaleDateString(undefined, { month: "short", day: "2-digit" });
+  const sub = new Date(weekStart).toLocaleDateString(undefined, { day: "2-digit", month: "short" });
 
-  function onAdd() {
-    const name = draft.trim();
-    if (!name) return;
-    setGoal(weekStart, name, "planned");
-    setDraft("");
-    setCompose(false);
-  }
+  const onAdd = () => {
+    const name = draft.trim(); if (!name) return;
+    setGoal(weekStart, name, "planned"); setDraft(""); setCompose(false);
+  };
 
   return (
-    <div className="yvWeekRow">
-      <button type="button" className="yvWeekBtn" onClick={() => onOpenWeek(weekStart)} aria-label={`Open ${code}`}>
-        <div className="yvWeekCode">{code}</div>
-        <div className="yvWeekSub">{sub}</div>
-      </button>
-      <div className="yvWeekMain">
-        <div className="yvGoals">
-          {items.map((g) => {
-            const checked = goalsRec[g] === "done";
-            return (
-              <div className="yvGoalItem" key={g}>
-                <ToggleButton checked={checked} onChange={() => toggleGoal(weekStart, g)} />
-                <div className="yvGoalText" style={{ textDecoration: checked ? "line-through" : "none" }}>{g}</div>
-                <button type="button" className="yvRemove" onClick={() => clearGoal(weekStart, g)} aria-label={`Remove ${g}`}>
-                  Remove
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="yvRowActions">
+    <section className={`yvWeek ${open ? "is-open" : "is-closed"}`}>
+      <div className="yvWeekHeader">
+        <button type="button" className="yvWeekMeta" onClick={() => onOpenWeek(weekStart)} title="Open in Week view">
+          <span className="yvWeekCode">{code}</span>
+          <span className="yvWeekDate">{sub}</span>
+        </button>
+        <div className="yvWeekHeaderRight">
           <AddButton aria-label="Add weekly goal" onClick={() => setCompose(true)} disabled={items.length >= 3} />
-          {compose && items.length < 3 && (
-            <>
-              <input
-                className="yvInput"
-                placeholder="Add a weekly goal…"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onAdd();
-                  if (e.key === "Escape") {
-                    setCompose(false);
-                    setDraft("");
-                  }
-                }}
-                maxLength={160}
-                autoFocus
-              />
-              <AddButton aria-label="Confirm weekly goal" onClick={onAdd} disabled={!draft.trim()} />
-            </>
-          )}
+          <button type="button" className="yvWeekCaret" aria-label={open ? "Collapse week" : "Expand week"} onClick={() => setOpen(v => !v)}>
+            {open ? "▾" : "▸"}
+          </button>
         </div>
       </div>
-    </div>
+
+      {open && (
+        <div className="yvWeekBody">
+          <div className="yvGoals">
+            {items.map((g) => {
+              const checked = goalsRec[g] === "done";
+              return (
+                <div className="yvGoalItem" key={g}>
+                  <ToggleButton checked={checked} onChange={() => toggleGoal(weekStart, g)} />
+                  <div className="yvGoalText" style={{ textDecoration: checked ? "line-through" : "none" }}>{g}</div>
+                  <button type="button" className="yvXBtn" aria-label={`Remove ${g}`} onClick={() => clearGoal(weekStart, g)} title="Remove">×</button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="yvRowActions">
+            <AddButton aria-label="Add weekly goal" onClick={() => setCompose(true)} disabled={items.length >= 3} />
+            {compose && items.length < 3 && (
+              <>
+                <input
+                  className="yvInput"
+                  placeholder="Add a weekly goal…"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onAdd();
+                    if (e.key === "Escape") { setCompose(false); setDraft(""); }
+                  }}
+                  maxLength={160}
+                  autoFocus
+                />
+                <AddButton aria-label="Confirm weekly goal" onClick={onAdd} disabled={!draft.trim()} />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
+/* ---------- Year view ---------- */
 export default function YearView() {
-  // Narrow selector: only the selected epoch-day from date store
   const selectedMs = useDateStore((s) => dayMs(s.selected));
   const year = new Date(selectedMs).getFullYear();
+  const todayWeekStart = startOfWeek(Date.now());
 
   const openWeek = React.useCallback((weekMs: number) => {
     useDateStore.getState().setMs(weekMs);
@@ -122,22 +114,17 @@ export default function YearView() {
   }, []);
 
   const go = React.useCallback((delta: number) => {
-    const d = new Date(selectedMs);
-    d.setFullYear(d.getFullYear() + delta);
-    d.setHours(0, 0, 0, 0);
+    const d = new Date(selectedMs); d.setFullYear(d.getFullYear() + delta); d.setHours(0,0,0,0);
     useDateStore.getState().setMs(d.getTime());
   }, [selectedMs]);
 
   const m = new Date(selectedMs).getMonth();
   const currentQ = (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4;
 
-  const [openQs, setOpenQs] = React.useState<Set<1 | 2 | 3 | 4>>(new Set([currentQ]));
-  const toggleQ = React.useCallback((q: 1 | 2 | 3 | 4) =>
-    setOpenQs((prev) => {
-      const next = new Set(prev);
-      next.has(q) ? next.delete(q) : next.add(q);
-      return next;
-    }), []);
+  const [openQs, setOpenQs] = React.useState<Set<1|2|3|4>>(new Set([currentQ]));
+  const toggleQ = React.useCallback((q: 1|2|3|4) => setOpenQs(prev => {
+    const next = new Set(prev); next.has(q) ? next.delete(q) : next.add(q); return next;
+  }), []);
 
   const qWeeks = React.useMemo(() => ({
     1: quarterWeekStarts(year, 1),
@@ -145,6 +132,8 @@ export default function YearView() {
     3: quarterWeekStarts(year, 3),
     4: quarterWeekStarts(year, 4),
   }), [year]);
+
+  const monthsLabel = (q: 1|2|3|4) => ["JAN–MAR","APR–JUN","JUL–SEP","OCT–DEC"][q-1];
 
   return (
     <div className="yvContainer">
@@ -159,37 +148,36 @@ export default function YearView() {
         </div>
       </div>
 
-      <div className="yvQGrid">
-        <QuarterSection label="Q1" months="JAN–MAR" year={year} q={1} isOpen={openQs.has(1)} onToggle={() => toggleQ(1)} onOpenWeek={openWeek} weeks={qWeeks[1]} />
-        <QuarterSection label="Q2" months="APR–JUN" year={year} q={2} isOpen={openQs.has(2)} onToggle={() => toggleQ(2)} onOpenWeek={openWeek} weeks={qWeeks[2]} />
-        <QuarterSection label="Q3" months="JUL–SEP" year={year} q={3} isOpen={openQs.has(3)} onToggle={() => toggleQ(3)} onOpenWeek={openWeek} weeks={qWeeks[3]} />
-        <QuarterSection label="Q4" months="OCT–DEC" year={year} q={4} isOpen={openQs.has(4)} onToggle={() => toggleQ(4)} onOpenWeek={openWeek} weeks={qWeeks[4]} />
-      </div>
+      {([1,2,3,4] as const).map((q) => (
+        <QuarterWeeks
+          key={q}
+          label={`Q${q}` as "Q1"|"Q2"|"Q3"|"Q4"}
+          months={monthsLabel(q)}
+          weeks={qWeeks[q]}
+          isOpen={openQs.has(q)}
+          onToggle={() => toggleQ(q)}
+          onOpenWeek={openWeek}
+          currentWeekStart={todayWeekStart}
+        />
+      ))}
     </div>
   );
 }
 
-function QuarterSection({
-  label,
-  months,
-  year,
-  q,
-  isOpen,
-  onToggle,
-  onOpenWeek,
-  weeks,
+/* Quarter section with its own header and collapsible body */
+function QuarterWeeks({
+  label, months, weeks, isOpen, onToggle, onOpenWeek, currentWeekStart
 }: {
   label: "Q1" | "Q2" | "Q3" | "Q4";
   months: string;
-  year: number;
-  q: 1 | 2 | 3 | 4;
+  weeks: number[];
   isOpen: boolean;
   onToggle: () => void;
   onOpenWeek: (ms: number) => void;
-  weeks: number[];
+  currentWeekStart: number;
 }) {
   return (
-    <section className={`yvQuarter ${!isOpen ? "yvCollapsed" : ""}`}> 
+    <section className={`yvQuarter ${!isOpen ? "yvCollapsed" : ""}`}>
       <div className="yvHeader" onClick={onToggle} role="button" aria-expanded={isOpen} aria-label={`Toggle ${label}`}>
         <div className="yvHLeft">
           <div className="yvQLabel">{label}</div>
@@ -204,7 +192,12 @@ function QuarterSection({
       <div className="yvBody">
         <div className="yvWeeks">
           {weeks.map((w) => (
-            <WeeklyRow key={w} weekStart={w} onOpenWeek={onOpenWeek} />
+            <WeeklyRow
+              key={w}
+              weekStart={w}
+              onOpenWeek={onOpenWeek}
+              currentWeekStart={currentWeekStart}
+            />
           ))}
         </div>
       </div>
