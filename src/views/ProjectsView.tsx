@@ -8,7 +8,6 @@ import {
   useTasks,
   add as addTask,
   byGoal,
-  setDateFlags,
   update as updateTask,
   remove as removeTask,
   type Task
@@ -25,49 +24,79 @@ export default function ProjectsView() {
   const projects = listProjects();
   const [tab, setTab] = useState<"active" | "archived">("active");
 
-  // add-project
-  const [addOpen, setAddOpen] = useState(false);
+  // add-project sheet
+  const [adding, setAdding] = useState(false);
   const [pName, setPName] = useState("");
   const [pNotes, setPNotes] = useState("");
+  const saveProject = () => {
+    const name = pName.trim();
+    if (!name) return;
+    addProject(name);
+    setAdding(false);
+    setPName(""); setPNotes("");
+  };
 
   const show = useMemo(
     () => projects.filter((p) => (tab === "active" ? !p.archived : p.archived)),
     [projects, tab]
   );
 
-  const saveProject = () => {
-    const name = pName.trim();
-    if (!name) return;
-    addProject(name);
-    setAddOpen(false);
-    setPName(""); setPNotes("");
-  };
-
   return (
     <div className="projects">
+      {/* Header row */}
       <header className="prjHeader">
         <h1 className="prjTitle">Projects</h1>
-        <div className="seg">
-          <button className={`seg-btn ${tab === "active" ? "active" : ""}`} onClick={() => setTab("active")}>Active</button>
-          <button className={`seg-btn ${tab === "archived" ? "active" : ""}`} onClick={() => setTab("archived")}>Archived</button>
+        <div className="prjControls">
+          <div className="seg" role="tablist" aria-label="Project filter">
+            <button
+              className={`seg-btn ${tab === "active" ? "active" : ""}`}
+              role="tab"
+              aria-selected={tab === "active"}
+              onClick={() => setTab("active")}
+            >
+              Active
+            </button>
+            <button
+              className={`seg-btn ${tab === "archived" ? "active" : ""}`}
+              role="tab"
+              aria-selected={tab === "archived"}
+              onClick={() => setTab("archived")}
+            >
+              Archived
+            </button>
+          </div>
+
+          <button
+            className="iconBtn prjAdd"
+            aria-label="Add project"
+            title="Add project"
+            onClick={() => setAdding(v => !v)}
+          >
+            +
+          </button>
         </div>
       </header>
 
-      <div className="projects__sep" />
-
-      <div className="addProjectWrap">
-        <div><button className="btn btn--primary" onClick={() => setAddOpen(v => !v)}>Add Project</button></div>
-        {addOpen && (
-          <div className="addProjectBlock sheet">
-            <div className="addProjectRow">
-              <input className="input" placeholder="Project name" value={pName} onChange={(e) => setPName(e.target.value)} />
-              <button className="btn btn--primary" onClick={saveProject}>Save</button>
-              <button className="btn" onClick={() => setAddOpen(false)}>Cancel</button>
-            </div>
-            <textarea placeholder="Notes (optional)" value={pNotes} onChange={(e) => setPNotes(e.target.value)} />
+      {/* Add project inline sheet */}
+      {adding && (
+        <div className="sheet addProjectSheet" role="dialog" aria-label="Add project">
+          <div className="addProjectRow">
+            <input
+              className="input"
+              placeholder="Project name"
+              value={pName}
+              onChange={(e) => setPName(e.target.value)}
+            />
+            <button className="btn btn--primary" onClick={saveProject}>Save</button>
+            <button className="btn" onClick={() => setAdding(false)}>Cancel</button>
           </div>
-        )}
-      </div>
+          <textarea
+            placeholder="Notes (optional)"
+            value={pNotes}
+            onChange={(e) => setPNotes(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="stack">
         {show.length === 0 && <div className="empty">No projects</div>}
@@ -82,26 +111,69 @@ export default function ProjectsView() {
 /* ---------- Project ---------- */
 function ProjectBlock({ pid, name, archived }: { pid: string; name: string; archived: boolean }) {
   const goals = listGoals(pid);
+
+  const [open, setOpen] = useState(true);
   const [gOpen, setGOpen] = useState(false);
   const [gTitle, setGTitle] = useState("");
-
   const addNewGoal = () => {
     const t = gTitle.trim(); if (!t) return;
     addGoal(pid, t);
     setGOpen(false); setGTitle("");
   };
 
+  const [menu, setMenu] = useState(false);
+
+  // progress
+  const version = useTasks((s) => s.version);
+  const allGoalTasks = useMemo(
+    () => goals.flatMap(g => byGoal(g.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version, goals.map(g => g.id).join("|")]
+  );
+  const doneCount = allGoalTasks.filter(t => t.done || t.tri === 1).length;
+  const totalCount = allGoalTasks.length;
+  const progress = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+
   return (
-    <section className="card projectBlock">
-      <div className="cardHead">
-        <div>
-          <h2 className="projectTitle">{name}</h2>
-          <div className="rowMeta">{goals.length} {goals.length === 1 ? "goal" : "goals"}</div>
+    <section className="projectRow" aria-labelledby={`prj-${pid}`}>
+      <div className="projectHead">
+        <button
+          className="chev"
+          aria-label={open ? "Collapse project" : "Expand project"}
+          aria-expanded={open}
+          onClick={() => setOpen(v => !v)}
+        >
+          {open ? "▾" : "▸"}
+        </button>
+
+        <div className="projectHeadMain">
+          <h2 id={`prj-${pid}`} className="projectTitle">{name}</h2>
+          <div className="rowMeta">
+            {goals.length} {goals.length === 1 ? "goal" : "goals"}
+            {totalCount > 0 ? ` • ${doneCount}/${totalCount} done (${progress}%)` : null}
+          </div>
+          {totalCount > 0 && (
+            <div className="progress">
+              <div className="progress__bar" style={{ width: `${progress}%` }} />
+            </div>
+          )}
         </div>
-        <div className="actions">
-          <button className="chip" onClick={() => archiveProject(pid, !archived)}>{archived ? "Unarchive" : "Archive"}</button>
-          <button className="chip danger" onClick={() => removeProject(pid)}>Delete</button>
-          <button className="chip" onClick={() => setGOpen(v => !v)}>Add Goal</button>
+
+        <div className="projectHeadAct">
+          <button className="iconBtn" aria-label="Project menu" onClick={() => setMenu(v => !v)}>⋯</button>
+          {menu && (
+            <div className="menu" role="menu">
+              <button className="menu__item" role="menuitem" onClick={() => { archiveProject(pid, !archived); setMenu(false); }}>
+                {archived ? "Unarchive" : "Archive"}
+              </button>
+              <button className="menu__item danger" role="menuitem" onClick={() => { removeProject(pid); setMenu(false); }}>
+                Delete
+              </button>
+              <button className="menu__item" role="menuitem" onClick={() => { setGOpen(true); setMenu(false); }}>
+                Add goal
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -113,12 +185,14 @@ function ProjectBlock({ pid, name, archived }: { pid: string; name: string; arch
         </div>
       )}
 
-      <div className="goalList">
-        {goals.length === 0 && <div className="empty">No goals yet</div>}
-        {goals.map((g) => (
-          <GoalBlock key={g.id} gid={g.id} title={g.title} />
-        ))}
-      </div>
+      {open && (
+        <div className="goalList">
+          {goals.length === 0 && <div className="empty">No goals yet</div>}
+          {goals.map((g) => (
+            <GoalBlock key={g.id} gid={g.id} title={g.title} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -137,17 +211,16 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
 
   // editor state
   const [editId, setEditId] = useState<string | null>(null);
-  const [titleDraft, setTitleDraft] = useState("");
+  const [titleDraft, setTitleDraft] = useState(""); // kept for compatibility
   const [dateStr, setDateStr] = useState("");
   const [u, setU] = useState(false);
   const [i, setI] = useState(false);
 
-  // date picker ref + opener
+  // date picker
   const dateRef = useRef<HTMLInputElement | null>(null);
   const openDatePicker = (e: React.MouseEvent<HTMLInputElement>) => {
     e.stopPropagation();
     const el = dateRef.current;
-    // Chromium supports showPicker()
     // @ts-ignore
     if (el && typeof el.showPicker === "function") { /* @ts-ignore */ el.showPicker(); }
     else if (el) { el.focus(); }
@@ -155,18 +228,10 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
 
   const openEdit = (t: Task) => {
     setEditId(t.id);
-    setTitleDraft(t.title);
+    setTitleDraft(t.title); // displayed in the row only
     setDateStr(t.dueMs ? new Date(t.dueMs).toISOString().slice(0, 10) : "");
     setU(!!t.urgent);
     setI(!!t.important);
-  };
-
-  const saveEdit = () => {
-    if (!editId) return;
-    const due = dateStr ? atStart(new Date(dateStr).getTime()) : null;
-    if (titleDraft.trim()) updateTask(editId, { title: titleDraft.trim() });
-    setDateFlags(editId, { dueMs: due, urgent: u, important: i });
-    setEditId(null);
   };
 
   const toggleTri = (t: Task) => {
@@ -175,8 +240,8 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
   };
 
   return (
-    <article className="goalBlock">
-      <h3 className="goalTitle">{title}</h3>
+    <article className="goalBlock" aria-labelledby={`goal-${gid}`}>
+      <h3 id={`goal-${gid}`} className="goalTitle">{title}</h3>
 
       <div className="addTaskRow">
         <input className="input" placeholder="Add task…" value={draft} onChange={(e) => setDraft(e.target.value)} />
@@ -190,9 +255,11 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
           const editing = editId === t.id;
           return (
             <div key={t.id} className={`taskRow ${editing ? "editing" : ""}`}>
-              <div className="taskMain">
-                <div className={`taskTitle ${done ? "done" : ""}`}>{t.title}</div>
-                <div className="rowMeta">{fmtShort(t.dueMs)} {t.urgent ? "U" : ""}{t.important ? " I" : ""}</div>
+              <div className="taskMain" onClick={() => openEdit(t)}>
+                <div className={`taskTitle ${done ? "done" : ""}`}>{t.title || "Untitled task"}</div>
+                <div className="rowMeta">
+                  {fmtShort(t.dueMs)} {t.urgent ? "U" : ""}{t.important ? " I" : ""}
+                </div>
               </div>
               <div className="actions">
                 <button className="chip" onClick={() => toggleTri(t)} title="Toggle tri-state">
@@ -208,23 +275,7 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
                   onPointerDown={(e)=>e.stopPropagation()}
                   onMouseDown={(e)=>e.stopPropagation()}
                 >
-                  {/* Row 1: name */}
-                  <div className="editRow name">
-                    <input
-                      className="input"
-                      placeholder="Task name"
-                      value={titleDraft}
-                      onChange={(e) => setTitleDraft(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Row 2: Sync + Delete */}
-                  <div className="editRow controlsRow">
-                    <span className="chip" aria-disabled>Sync</span>
-                    <button className="chip danger" onClick={() => { removeTask(t.id); setEditId(null); }}>Delete</button>
-                  </div>
-
-                  {/* Row 3: Calendar + U + I */}
+                  {/* Row 1: Calendar + U + I */}
                   <div className="editRow scheduleRow">
                     <input
                       ref={dateRef}
@@ -240,9 +291,27 @@ function GoalBlock({ gid, title }: { gid: string; title: string }) {
                     <button className={`chip ${i ? "is-on" : ""}`} onClick={() => setI(v => !v)}>I</button>
                   </div>
 
-                  {/* Row 4: Save + Cancel */}
-                  <div className="editRow actionsRow">
-                    <button className="btn btn--primary" onClick={saveEdit}>Save</button>
+                  {/* Row 2: Sync/Delete/Save/Cancel */}
+                  <div className="editRow controlsRow">
+                    <span className="chip" aria-disabled>Sync</span>
+                    <button
+                      className="chip danger"
+                      onClick={() => { removeTask(t.id); setEditId(null); }}
+                    >
+                      Delete
+                    </button>
+                    <div style={{ flex: 1 }} />
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => {
+                        const dueMs = dateStr ? atStart(new Date(dateStr).getTime()) : null;
+                        // keep title as-is; only schedule/flags update
+                        updateTask(t.id, { title: titleDraft, dueMs, urgent: u, important: i });
+                        setEditId(null);
+                      }}
+                    >
+                      Save
+                    </button>
                     <button className="btn" onClick={() => setEditId(null)}>Cancel</button>
                   </div>
                 </div>

@@ -1,4 +1,11 @@
-/* src/views/TasksView.css — drop-in rewrite */
+/* src/views/TasksView.css — drop-in rewrite
+   - Title + mode inline (handled in TSX)
+   - Matrix stacked
+   - Quadrant frames thicker
+   - Task text smaller globally
+   - FAB stays inside 480px column
+*/
+
 /* ===== Tokens ===== */
 :root{
   --ink:#0f172a;
@@ -12,17 +19,22 @@
   --quad2:#F7D58A; /* Urgent */
   --quad3:#B9C3FF; /* Neither */
 
-  /* app column + bottom bar */
   --col:480px;
   --col-pad:16px;
   --bottom-bar:72px;
 }
 
 /* ===== Page ===== */
-.tv-wrap{max-width:var(--col);margin:0 auto;padding:12px var(--col-pad) calc(var(--bottom-bar) + 88px);color:var(--ink);background:var(--bg)}
+.tv-wrap{
+  max-width:var(--col);
+  margin:0 auto;
+  padding:12px var(--col-pad) calc(var(--bottom-bar) + 88px);
+  color:var(--ink);
+  background:var(--bg);
+}
 .empty{opacity:.6;padding:8px 0;text-align:center}
 
-/* ===== Header (title + controls inline) ===== */
+/* ===== Header (title + controls inline in TSX) ===== */
 .tv-headRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .tv-title{margin:0;font-weight:800;font-size:22px;letter-spacing:.2px}
 .tv-mode{display:flex;gap:8px}
@@ -37,7 +49,7 @@
 .chipCount{margin-left:6px;font-size:11px;opacity:.75}
 
 /* Filters row */
-.tv-filters{display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin-bottom:8px}
+.tv-filters{display:flex;gap:8px;overflow:auto;padding-bottom:8px;margin-bottom:18px}
 .tv-filters::-webkit-scrollbar{display:none}
 
 /* ===== List rows (borderless, with dividers) ===== */
@@ -53,14 +65,23 @@
 .task-check.checked{background:#111;border-color:#111;position:relative}
 .task-check.checked::after{content:"";position:absolute;inset:7px;background:#fff;border-radius:999px}
 
-/* text */
+/* text — smaller globally */
 .task-text{min-width:0;cursor:pointer}
 .task-title{
-  font-weight:700;font-size:15px;line-height:1.3;min-width:0;
+  font-weight:600;        /* was 700 */
+  font-size:14px;         /* was 15px */
+  line-height:1.25;
+  letter-spacing:.1px;
+  min-width:0;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
 }
 .task-title.done{text-decoration:line-through;opacity:.55}
-.task-meta{font-size:12px;opacity:.7;margin-top:2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task-meta{
+  font-size:11.5px;       /* was 12px */
+  opacity:.68;
+  margin-top:2px;
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap
+}
 .task-meta .overdue{color:#b91c1c;opacity:1}
 .pill{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border:1px solid var(--border);border-radius:9999px;font-size:11px}
 
@@ -70,24 +91,36 @@
   color:#b91c1c;border-radius:999px;cursor:pointer
 }
 
-/* ===== Matrix (STACKED COLUMNS) ===== */
+/* ===== Matrix (STACKED, THICKER BOUNDARIES) ===== */
 .matrixGrid{
   display:grid;
-  grid-template-columns:1fr;    /* single column stacking */
-  grid-auto-rows:auto;
-  gap:16px;
-  margin-top:12px;
+  grid-template-columns:1fr;
+  gap:24px;
+  max-width:var(--col);
+  margin:12px auto 0;
   min-width:0;
 }
-.quadBox{border:2px solid var(--border);background:transparent;border-radius:18px;padding:14px}
+.quadBox{
+  border:3px solid var(--border);
+  border-radius:24px;
+  padding:18px;
+  background:transparent;
+}
 .quadBox.q-0{border-color:var(--quad0)}
 .quadBox.q-1{border-color:var(--quad1)}
 .quadBox.q-2{border-color:var(--quad2)}
 .quadBox.q-3{border-color:var(--quad3)}
-.quadHeader{font-weight:700;margin:0 0 10px}
-.quadBody{/* rows reuse .task-row styles */}
+.quadHeader{
+  font-weight:600;
+  margin:0 0 8px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--sep);
+}
+/* matrix a touch smaller than list */
+.matrixGrid .task-title{font-weight:500;font-size:13px}
+.matrixGrid .task-meta{font-size:11px;opacity:.65}
 
-/* ===== Floating Add Button — inside 480px bounds ===== */
+/* ===== FAB inside 480px column ===== */
 .fab{
   position:fixed;
   bottom:calc(var(--bottom-bar) + 16px);
@@ -96,7 +129,7 @@
   display:grid;place-items:center;font-size:28px;line-height:1;border:none;
   box-shadow:0 10px 30px rgba(0,0,0,.15);cursor:pointer
 }
-@media (max-width: 480px){ .fab{ right:16px } }
+@media (max-width:480px){ .fab{ right:16px } }
 
 /* ===== Modals ===== */
 .tv-modal{display:grid;gap:10px;min-width:300px}

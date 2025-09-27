@@ -1,16 +1,15 @@
-// src/sections/TasksView.tsx — drop-in rewrite, preserves all existing features
+// src/views/TasksView.tsx — drop-in rewrite: title + List/Matrix/Edit on one line, preserves all behavior
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import "./TasksView.css";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import Modal from "@/components/Modal";
-import ToggleButton from "@/components/ToggleButton"; // kept for parity where referenced
 import {
-  useTasks,          // subscribes to store
-  all,               // returns array of Task
-  add,               // add({ title, dueMs|null, urgent, important, tri, done })
-  update,            // update(id, partial)
-  remove,            // remove(id)
+  useTasks,
+  all,
+  add,
+  update,
+  remove,
   type Task,
 } from "@/stores/tasksStore";
 
@@ -39,25 +38,19 @@ const bucketOf = (t: Task, base = todayStart): Bucket => {
   return "later";
 };
 
-/* =============================================================== */
-
 export default function TasksView(): JSX.Element {
-  // subscribe to changes
   useTasks();
   const tasks = all();
 
-  // UI state
   const [mode, setMode] = useState<"list"|"matrix">("list");
-  const [filters, setFilters] = useState<Set<Bucket>>(new Set()); // empty = show all
+  const [filters, setFilters] = useState<Set<Bucket>>(new Set());
 
-  // selection + edit modal
   const [selId, setSelId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
-  // add modal
   const [addOpen, setAddOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftDate, setDraftDate] = useState<string>(""); // YYYY-MM-DD
+  const [draftDate, setDraftDate] = useState<string>("");
   const [draftU, setDraftU] = useState(false);
   const [draftI, setDraftI] = useState(false);
   const addTitleRef = useRef<HTMLInputElement>(null);
@@ -71,7 +64,6 @@ export default function TasksView(): JSX.Element {
     setDraftTitle(""); setDraftDate(""); setDraftU(false); setDraftI(false); setAddOpen(false);
   };
 
-  // sorting (priority -> due date -> created)
   const sorted: Task[] = useMemo(() => {
     const arr = Array.isArray(tasks) ? [...tasks] : [];
     arr.sort((a,b) => {
@@ -86,20 +78,17 @@ export default function TasksView(): JSX.Element {
     return arr;
   }, [tasks]);
 
-  // chip counts
   const counts = useMemo(() => {
     const c: Record<Bucket, number> = { today:0, overdue:0, tomorrow:0, thisWeek:0, later:0, noDate:0 };
     sorted.forEach(t => { c[bucketOf(t)]++; });
     return c;
   }, [sorted]);
 
-  // filtered list
   const list = useMemo(
     () => sorted.filter(t => (filters.size === 0 ? true : filters.has(bucketOf(t)))),
     [sorted, filters]
   );
 
-  // row actions
   const toggleDoneTri = (t: Task) => {
     const checked = t.done || t.tri === 1;
     const nextDone = !checked;
@@ -107,9 +96,9 @@ export default function TasksView(): JSX.Element {
   };
   const del = (id: string) => remove(id);
 
-  // edit modal state
-  const sel = useMemo(() =>
-    list.find(t => t.id === selId) ?? sorted.find(t => t.id === selId) ?? null, [list, sorted, selId]
+  const sel = useMemo(
+    () => list.find(t => t.id === selId) ?? sorted.find(t => t.id === selId) ?? null,
+    [list, sorted, selId]
   );
   const [eTitle, setETitle] = useState("");
   const [eDate, setEDate] = useState<string>("");
@@ -135,13 +124,17 @@ export default function TasksView(): JSX.Element {
 
   return (
     <div className="tv-wrap">
-      {/* header */}
+      {/* header: title + mode on one line */}
       <header className="tv-header">
-        <h1 className="tv-title">Tasks</h1>
-        <div className="tv-mode">
-          <button className={`chip ${mode==="list"?"active":""}`} onClick={() => setMode("list")}>List</button>
-          <button className={`chip ${mode==="matrix"?"active":""}`} onClick={() => setMode("matrix")}>Matrix</button>
-          <button className="chip" disabled={!sel} onClick={() => setEditOpen(v=>!v)}>{editOpen?"Close":"Edit"}</button>
+        <div className="tv-headRow">
+          <h1 className="tv-title">Tasks</h1>
+          <div className="tv-mode">
+            <button className={`chip ${mode==="list"?"active":""}`} onClick={() => setMode("list")}>List</button>
+            <button className={`chip ${mode==="matrix"?"active":""}`} onClick={() => setMode("matrix")}>Matrix</button>
+            {sel && (
+              <button className="chip" onClick={() => setEditOpen(v=>!v)}>{editOpen?"Close":"Edit"}</button>
+            )}
+          </div>
         </div>
 
         {/* filters with counts */}
@@ -152,7 +145,9 @@ export default function TasksView(): JSX.Element {
               role="tab"
               aria-selected={filters.has(k)}
               className={`chip ${filters.has(k) ? "active" : ""}`}
-              onClick={() => setFilters(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; })}
+              onClick={() =>
+                setFilters(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; })
+              }
             >
               {LABEL[k]} <span className="chipCount">{counts[k]}</span>
             </button>
@@ -190,12 +185,12 @@ export default function TasksView(): JSX.Element {
           <div style={{ height: 88 }} aria-hidden />
         </div>
       ) : (
-        /* MATRIX */
+        /* MATRIX (stacked sections) */
         <div className="matrixGrid">
           {[
             ["Urgent + Important (Do first)", (x: Task) => x.urgent && x.important],
-            ["Important (Schedule)",       (x: Task) => !x.urgent && x.important],
-            ["Urgent (Delegate)",          (x: Task) => x.urgent && !x.important],
+            ["Important (Schedule)",          (x: Task) => !x.urgent && x.important],
+            ["Urgent (Delegate)",             (x: Task) => x.urgent && !x.important],
             ["Not urgent & not important (Eliminate)", (x: Task) => !x.urgent && !x.important],
           ].map(([title, pred], idx) => {
             const items = list.filter(pred as any);
@@ -234,7 +229,7 @@ export default function TasksView(): JSX.Element {
         </div>
       )}
 
-      {/* FAB add */}
+      {/* FAB add inside 480px layout (CSS positions within column) */}
       <button className="fab" aria-label="Add task" onClick={() => setAddOpen(true)}>＋</button>
 
       {/* ADD MODAL */}

@@ -1,53 +1,170 @@
-/* src/views/ProjectsView.css */
+/* src/views/ProjectsView.css — drop-in rewrite with calendar popover fix */
 
-/* --- Base --- */
-:root { --proj-sep:#e5e7eb; --ink:#111; }
-.projects .chip{ border:1px solid var(--proj-sep); background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; }
-.projects .chip.danger{ border-color:#f3c7c7; color:#a52828; }
-.projects .btn{ border:1px solid var(--proj-sep); background:#fff; color:var(--ink); border-radius:12px; padding:8px 12px; }
-.projects .btn--primary{ background:#111; color:#fff; border-color:#111; }
-.projects .input, .projects input[type="text"], .projects textarea{
-  border:1px solid var(--proj-sep); border-radius:10px; padding:10px 12px;
+/* ===== tokens ===== */
+:root{
+  --ink:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+  --sep:#eef2f7;
+  --bg:#ffffff;
+
+  --col:480px;
+  --col-pad:16px;
+  --bottom-bar:72px;
+
+  --accent:#f79c34;
+  --danger:#b91c1c;
 }
 
-/* --- Task row container (wrap + let editor drop below) --- */
-.projects .taskRow{
-  display:flex; align-items:center; gap:10px; padding:10px 12px;
-  border:1px solid #f1f1f1; border-radius:12px; flex-wrap:wrap;
+/* ===== page ===== */
+.projects{
+  max-width:var(--col);
+  margin:0 auto;
+  padding:12px var(--col-pad) calc(var(--bottom-bar) + 88px);
+  color:var(--ink);
+  background:var(--bg);
+
+  /* calendar safety */
+  position:relative;
+  overflow:visible;
+  isolation:isolate;           /* create top stacking context */
 }
-.projects .taskMain{ flex:1 1 auto; min-width:0; }
-.projects .actions{ margin-left:auto; display:flex; gap:8px; align-items:center; }
-.projects .taskRow.editing .actions{ display:none; }  /* hide chips when editing */
-.projects .taskRow .sheet{ flex:1 1 100%; }          /* force editor onto new line */
+.empty{opacity:.6;padding:8px 0;text-align:center}
 
-/* --- Inline editor sheet (single definition) --- */
-.projects .sheet{
-  max-width:480px; width:100%;
-  display:grid; gap:10px; padding:12px;
-  border:1px solid #f1f1f1; border-radius:16px; background:#fff;
-  position:relative; /* z-index safety for inputs */
+/* ===== header ===== */
+.prjHeader{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.prjTitle{margin:0;font-weight:800;font-size:22px;letter-spacing:.2px}
+.prjControls{display:flex;align-items:center;gap:10px}
+
+/* segment control */
+.seg{display:flex;border-radius:9999px;background:#f8fafc;padding:2px}
+.seg-btn{
+  padding:8px 12px;border-radius:9999px;border:1px solid transparent;background:transparent;
+  cursor:pointer;font-size:14px
+}
+.seg-btn.active{background:#fff;border-color:var(--border);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+
+/* header + button */
+.iconBtn{
+  width:36px;height:36px;border-radius:9999px;border:1px solid var(--border);
+  background:#fff;display:grid;place-items:center;cursor:pointer;font-size:20px
+}
+.prjAdd{background:#111;color:#fff;border-color:#111}
+
+/* add-project sheet */
+.sheet.addProjectSheet{
+  border:1px solid var(--border);border-radius:12px;padding:12px;margin:8px 0;
+  position:relative;overflow:visible;
+}
+.addProjectRow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+
+/* ===== inputs / buttons / chips ===== */
+.input{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff
+}
+.input:focus{outline:2px solid var(--accent);outline-offset:2px}
+.input.date{
+  max-width:200px;
+
+  /* calendar safety */
+  position:relative;
+  z-index:1000;                /* lift above menus and rows */
+  pointer-events:auto;
+  appearance:auto;
+  -webkit-appearance:auto;
+}
+.input.date::-webkit-calendar-picker-indicator{cursor:pointer}
+
+/* buttons */
+.btn{
+  padding:8px 12px;border-radius:9999px;border:1px solid var(--border);background:#fff;cursor:pointer
+}
+.btn--primary{background:#111;border-color:#111;color:#fff}
+
+/* chips */
+.chip{
+  padding:6px 10px;border-radius:9999px;border:1px solid var(--border);background:#fff;cursor:pointer
+}
+.chip.danger{border-color:#ffd1d1;background:#fee2e2;color:var(--danger)}
+.chip.is-on{background:#111;color:#fff;border-color:#111}
+
+/* ===== list stack ===== */
+.stack{display:block;position:relative;overflow:visible}
+.projectRow{
+  padding:10px 0;border-bottom:1px solid var(--sep);
+  position:relative;overflow:visible;
+}
+.projectRow:first-of-type{border-top:1px solid var(--sep)}
+
+/* project head */
+.projectHead{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.chev{
+  width:32px;height:32px;border-radius:9999px;border:1px solid var(--border);background:#fff;cursor:pointer
+}
+.projectHeadMain{min-width:0}
+.projectTitle{
+  margin:0;font-weight:700;font-size:18px;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.rowMeta{font-size:12px;color:var(--muted);margin-top:2px}
+.progress{height:6px;background:#f3f4f6;border-radius:6px;margin-top:6px;overflow:hidden}
+.progress__bar{height:100%;background:#111;border-radius:6px;}
+
+/* project head actions / menu */
+.projectHeadAct{position:relative;z-index:10}
+.menu{
+  position:absolute;top:36px;right:0;min-width:160px;background:#fff;border:1px solid var(--border);
+  border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:6px;z-index:20
+}
+.menu__item{
+  width:100%;text-align:left;background:transparent;border:0;padding:8px 10px;border-radius:8px;cursor:pointer
+}
+.menu__item:hover{background:#f7f7f7}
+.menu__item.danger{color:var(--danger)}
+
+/* ===== goals ===== */
+.goalBlock{padding:8px 0;position:relative;overflow:visible}
+.goalTitle{margin:6px 0 8px;font-weight:700;font-size:16px}
+.goalList{margin-top:4px;position:relative;overflow:visible}
+
+/* add task under goal */
+.addTaskRow{display:flex;gap:8px;align-items:center;margin:6px 0}
+
+/* goal tasks */
+.taskList{display:block;position:relative;overflow:visible}
+.taskRow{
+  display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--sep);
+  position:relative;overflow:visible;
+}
+.taskRow:first-child{border-top:1px solid var(--sep)}
+.taskMain{min-width:0;cursor:pointer}
+.taskTitle{
+  font-weight:600;font-size:14px;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+.taskTitle.done{text-decoration:line-through;opacity:.55}
+.actions{display:flex;gap:6px;align-items:center}
+
+/* inline editor under a task */
+.taskRow.editing .sheet{
+  border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:8px;
+  position:relative;z-index:100;overflow:visible;
+}
+.editRow{display:flex;gap:8px;align-items:center;margin:6px 0}
+.editRow.controlsRow{justify-content:flex-end}
+.editRow.scheduleRow{gap:10px}
+
+/* ===== focus ===== */
+:where(.seg-btn,.iconBtn,.btn,.chip,.chev,.menu__item).focus-visible,
+:where(.seg-btn,.iconBtn,.btn,.chip,.chev,.menu__item):focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px
 }
 
-/* --- Explicit rows --- */
-.projects .controlsRow,
-.projects .scheduleRow,
-.projects .actionsRow{ display:flex; align-items:center; gap:10px; }
-
-/* Row 3: Calendar + U + I — small, clickable calendar */
-.projects .scheduleRow .input.date{
-  flex:0 0 110px; width:110px; height:32px; padding:4px 8px;
-  appearance:auto; -webkit-appearance:menulist; /* Safari */
-  pointer-events:auto; position:relative; z-index:1;
+/* ===== motion ===== */
+/* avoid transforms that create new stacking contexts which can hide popovers */
+@media (prefers-reduced-motion:no-preference){
+  .projectRow:active{transform:none}
 }
-.projects .scheduleRow .chip{ height:32px; position:relative; z-index:0; }
-
-/* Row 4: Save/Cancel right aligned */
-.projects .actionsRow{ justify-content:flex-end; }
-
-/* Selected state for U / I */
-.projects .chip.is-on{ background:#111; color:#fff; border-color:#111; }
-
-/* Text bits */
-.projects .rowMeta{ font-size:12px; opacity:.7; }
-.projects .done{ text-decoration:line-through; opacity:.6; }
-.projects .empty{ opacity:.6; padding:6px 0; }
