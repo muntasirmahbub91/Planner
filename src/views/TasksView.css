@@ -1,5 +1,4 @@
-/* src/views/TaskView.css — drop-in rewrite. List rows + chip filters + FAB. No loss of function. */
-
+/* src/views/TasksView.css — drop-in rewrite */
 /* ===== Tokens ===== */
 :root{
   --ink:#0f172a;
@@ -7,22 +6,26 @@
   --border:#e5e7eb;
   --sep:#eef2f7;
   --bg:#ffffff;
-  --soft:#fafafa;
 
   --quad0:#F6B39A; /* Urgent+Important */
   --quad1:#8ED1C1; /* Important */
   --quad2:#F7D58A; /* Urgent */
   --quad3:#B9C3FF; /* Neither */
+
+  /* app column + bottom bar */
+  --col:480px;
+  --col-pad:16px;
+  --bottom-bar:72px;
 }
 
 /* ===== Page ===== */
-.tv-wrap{max-width:480px;margin:0 auto;padding:12px 16px 88px;color:var(--ink);background:var(--bg)}
+.tv-wrap{max-width:var(--col);margin:0 auto;padding:12px var(--col-pad) calc(var(--bottom-bar) + 88px);color:var(--ink);background:var(--bg)}
 .empty{opacity:.6;padding:8px 0;text-align:center}
 
-/* ===== Header ===== */
-.tv-header{}
-.tv-title{margin:0 0 10px;font-weight:800;font-size:22px;letter-spacing:.2px}
-.tv-mode{display:flex;gap:8px;margin-bottom:8px}
+/* ===== Header (title + controls inline) ===== */
+.tv-headRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tv-title{margin:0;font-weight:800;font-size:22px;letter-spacing:.2px}
+.tv-mode{display:flex;gap:8px}
 
 /* Chips */
 .chip{
@@ -30,7 +33,7 @@
   background:#fff;white-space:nowrap;font-size:14px;cursor:pointer
 }
 .chip.active{background:#111;color:#fff;border-color:#111}
-.chip:disabled{opacity:.45;cursor:not-allowed}
+.chip:disabled{display:none}
 .chipCount{margin-left:6px;font-size:11px;opacity:.75}
 
 /* Filters row */
@@ -67,11 +70,14 @@
   color:#b91c1c;border-radius:999px;cursor:pointer
 }
 
-/* ===== Matrix (2x2 Eisenhower) ===== */
+/* ===== Matrix (STACKED COLUMNS) ===== */
 .matrixGrid{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  grid-auto-rows:minmax(clamp(140px,32vh,360px),auto);
-  gap:16px;min-width:0;margin-top:12px
+  display:grid;
+  grid-template-columns:1fr;    /* single column stacking */
+  grid-auto-rows:auto;
+  gap:16px;
+  margin-top:12px;
+  min-width:0;
 }
 .quadBox{border:2px solid var(--border);background:transparent;border-radius:18px;padding:14px}
 .quadBox.q-0{border-color:var(--quad0)}
@@ -81,11 +87,16 @@
 .quadHeader{font-weight:700;margin:0 0 10px}
 .quadBody{/* rows reuse .task-row styles */}
 
-/* ===== Floating Add Button ===== */
+/* ===== Floating Add Button — inside 480px bounds ===== */
 .fab{
-  position:fixed;right:20px;bottom:92px;width:54px;height:54px;border-radius:999px;background:#111;color:#fff;
-  display:grid;place-items:center;font-size:28px;line-height:1;border:none;box-shadow:0 10px 30px rgba(0,0,0,.15);cursor:pointer
+  position:fixed;
+  bottom:calc(var(--bottom-bar) + 16px);
+  right:max(16px, calc((100vw - var(--col))/2 + var(--col-pad)));
+  width:54px;height:54px;border-radius:999px;background:#111;color:#fff;
+  display:grid;place-items:center;font-size:28px;line-height:1;border:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);cursor:pointer
 }
+@media (max-width: 480px){ .fab{ right:16px } }
 
 /* ===== Modals ===== */
 .tv-modal{display:grid;gap:10px;min-width:300px}
@@ -107,24 +118,4 @@
 /* ===== Motion ===== */
 @media (prefers-reduced-motion:no-preference){
   .task-row:active{transform:scale(.995);transition:transform .05s ease}
-}
-:root{
-  --col: 480px;          /* app content width */
-  --col-pad: 16px;       /* inner padding of the column */
-  --bottom-bar: 72px;    /* your bottom nav height */
-}
-
-/* Keep + inside the 480px column on any screen width */
-.fab{
-  position: fixed;
-  bottom: calc(var(--bottom-bar) + 16px);
-  right: max(16px, calc((100vw - var(--col)) / 2 + var(--col-pad)));
-  width: 54px; height: 54px; border-radius: 999px;
-  background:#111; color:#fff; display:grid; place-items:center;
-  border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.15); cursor: pointer;
-}
-
-/* On narrow screens where viewport ≤ 480px, hug 16px from edge */
-@media (max-width: 480px){
-  .fab{ right: 16px; }
 }
