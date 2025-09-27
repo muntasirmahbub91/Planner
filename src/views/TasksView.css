@@ -1,111 +1,130 @@
-/* TasksView.css — stable layout; no jump; composer wraps under input */
+/* src/views/TaskView.css — drop-in rewrite. List rows + chip filters + FAB. No loss of function. */
 
+/* ===== Tokens ===== */
 :root{
-  --gap-40:40px;
-  /* Matrix quad accents */
-  --quad0:#F6B39A; /* Urgent + Important */
+  --ink:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+  --sep:#eef2f7;
+  --bg:#ffffff;
+  --soft:#fafafa;
+
+  --quad0:#F6B39A; /* Urgent+Important */
   --quad1:#8ED1C1; /* Important */
   --quad2:#F7D58A; /* Urgent */
-  --quad3:#B9C3FF; /* Not urgent & not important */
+  --quad3:#B9C3FF; /* Neither */
 }
 
-/* Stop scroll-anchoring jitter from dynamic blocks */
-.tasks,.addBlock,.list,.matrixGrid{overflow-anchor:none}
+/* ===== Page ===== */
+.tv-wrap{max-width:480px;margin:0 auto;padding:12px 16px 88px;color:var(--ink);background:var(--bg)}
+.empty{opacity:.6;padding:8px 0;text-align:center}
 
-/* Head */
-.tasks__h1{margin:0 0 8px}
-.tasks__sep,.thinSep{height:1px;background:#eee}
-.tasks__sep{margin:0 0 12px}
+/* ===== Header ===== */
+.tv-header{}
+.tv-title{margin:0 0 10px;font-weight:800;font-size:22px;letter-spacing:.2px}
+.tv-mode{display:flex;gap:8px;margin-bottom:8px}
 
-/* ----- Add / Composer ----- */
-.addBlock{margin:0 0 16px;min-height:64px}
-.addBlockHeader{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:6px 0;min-height:48px
+/* Chips */
+.chip{
+  padding:8px 12px;border:1px solid var(--border);border-radius:9999px;
+  background:#fff;white-space:nowrap;font-size:14px;cursor:pointer
 }
-/* header title removed; use a button instead */
-.addBtn{
-  appearance:none;cursor:pointer;font-weight:800;
-  padding:10px 14px;border-radius:999px;
-  border:1px solid #e5e7eb;background:#fff;color:#111
-}
-.addBtn[aria-expanded="true"]{background:#111;color:#fff;border-color:#111}
+.chip.active{background:#111;color:#fff;border-color:#111}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+.chipCount{margin-left:6px;font-size:11px;opacity:.75}
 
-/* input on first row, controls wrap under it */
-.composerRowInline{
-  display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px 0;min-width:0
-}
-.composerRowInline>.tinyInput{flex:1 1 100%;width:100%;min-width:0}
-.tinyInput{
-  min-width:160px;width:100%;
-  padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px
-}
-.iconBtn{
-  border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;
-  white-space:nowrap
-}
-.pill{
-  border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;
-  white-space:nowrap
-}
-.pill.on{background:#111;color:#fff;border-color:#111}
-.btn{
-  border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;
-  white-space:nowrap
-}
-.btn--primary{background:#111;color:#fff;border-color:#111}
+/* Filters row */
+.tv-filters{display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin-bottom:8px}
+.tv-filters::-webkit-scrollbar{display:none}
 
-/* keep hidden date pickers from affecting width */
-.hiddenDate{
-  position:absolute;width:1px;height:1px;padding:0;border:0;opacity:0;pointer-events:none
+/* ===== List rows (borderless, with dividers) ===== */
+.tv-list{display:block}
+.task-row{
+  display:grid;grid-template-columns:36px 1fr 32px;align-items:center;column-gap:12px;
+  padding:12px 0;border-bottom:1px solid var(--sep);min-width:0
+}
+.task-row:first-child{border-top:1px solid var(--sep)}
+
+/* round check */
+.task-check{width:28px;height:28px;border-radius:999px;border:1px solid #d1d5db;background:#f3f4f6;cursor:pointer}
+.task-check.checked{background:#111;border-color:#111;position:relative}
+.task-check.checked::after{content:"";position:absolute;inset:7px;background:#fff;border-radius:999px}
+
+/* text */
+.task-text{min-width:0;cursor:pointer}
+.task-title{
+  font-weight:700;font-size:15px;line-height:1.3;min-width:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+.task-title.done{text-decoration:line-through;opacity:.55}
+.task-meta{font-size:12px;opacity:.7;margin-top:2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task-meta .overdue{color:#b91c1c;opacity:1}
+.pill{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border:1px solid var(--border);border-radius:9999px;font-size:11px}
+
+/* delete */
+.task-x{
+  width:32px;height:32px;display:grid;place-items:center;border:1px solid #f1b6b6;background:#fee2e2;
+  color:#b91c1c;border-radius:999px;cursor:pointer
 }
 
-/* ----- Toolbar ----- */
-.toolbarLeft{display:flex;align-items:center;gap:10px;margin-top:24px}
-.seg{border:1px solid #e5e7eb;border-radius:999px;padding:2px;display:inline-flex}
-.seg-btn{border:0;background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;font-size:15px}
-.seg-btn.active{background:#111;color:#fff}
-
-/* ----- Filters ----- */
-.filtersRow{
-  display:flex;flex-wrap:wrap;gap:12px;
-  margin-top:var(--gap-40);margin-bottom:24px
-}
-.chipToggle{
-  border:1px solid #e5e7eb;background:#fff;border-radius:999px;
-  padding:10px 16px;cursor:pointer;font-size:15px;line-height:1;
-  transition:background .15s,color .15s,border-color .15s;
-  white-space:nowrap
-}
-.chipToggle.on{background:#111;color:#fff;border-color:#111}
-
-/* ----- List ----- */
-.listTopGap{margin-top:10px}
-.list{display:grid;gap:10px}
-.row{
-  display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;
-  border:1px solid #f0f0f0;border-radius:14px;padding:10px 12px;min-width:0
-}
-.row.sel{box-shadow:0 0 0 2px #f7c58a inset}
-.rowMain{cursor:pointer;min-width:0}
-.rowTitle{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rowTitle.done{text-decoration:line-through;opacity:.6}
-.rowMeta{font-size:12px;opacity:.7}
-.rowBtns{display:flex;gap:6px}
-.rowBtns .icon{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:6px 8px;cursor:pointer}
-.empty{opacity:.6;padding:6px 0}
-
-/* ----- Matrix (2x2) ----- */
+/* ===== Matrix (2x2 Eisenhower) ===== */
 .matrixGrid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
   grid-auto-rows:minmax(clamp(140px,32vh,360px),auto);
-  gap:16px;min-width:0
+  gap:16px;min-width:0;margin-top:12px
 }
-.quadBox{border:2px solid #e5e7eb;background:transparent;border-radius:18px;padding:14px}
+.quadBox{border:2px solid var(--border);background:transparent;border-radius:18px;padding:14px}
 .quadBox.q-0{border-color:var(--quad0)}
 .quadBox.q-1{border-color:var(--quad1)}
 .quadBox.q-2{border-color:var(--quad2)}
 .quadBox.q-3{border-color:var(--quad3)}
 .quadHeader{font-weight:700;margin:0 0 10px}
-.quadBody{/* grows naturally */}
+.quadBody{/* rows reuse .task-row styles */}
+
+/* ===== Floating Add Button ===== */
+.fab{
+  position:fixed;right:20px;bottom:92px;width:54px;height:54px;border-radius:999px;background:#111;color:#fff;
+  display:grid;place-items:center;font-size:28px;line-height:1;border:none;box-shadow:0 10px 30px rgba(0,0,0,.15);cursor:pointer
+}
+
+/* ===== Modals ===== */
+.tv-modal{display:grid;gap:10px;min-width:300px}
+.tv-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.tv-input:focus{outline:2px solid #111;outline-offset:2px}
+.tv-flags{display:flex;gap:8px;align-items:center}
+.tv-flag{width:32px;height:32px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:800;cursor:pointer}
+.tv-flag.on{background:#111;color:#fff;border-color:#111}
+.tv-datePicker{padding:6px 0}
+.tv-dateMeta{font-size:12px;color:var(--muted)}
+.tv-modalActions{margin-left:auto;display:flex;gap:8px}
+.tv-btn{padding:8px 12px;border-radius:9999px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+.tv-btn:disabled{opacity:.5;cursor:not-allowed}
+.tv-btn.ghost{background:#fff;color:#111;border-color:var(--border)}
+
+/* ===== Focus visibility ===== */
+:where(.chip,.task-check,.task-x,.tv-flag,.tv-btn,.fab):focus-visible{outline:2px solid #111;outline-offset:2px}
+
+/* ===== Motion ===== */
+@media (prefers-reduced-motion:no-preference){
+  .task-row:active{transform:scale(.995);transition:transform .05s ease}
+}
+:root{
+  --col: 480px;          /* app content width */
+  --col-pad: 16px;       /* inner padding of the column */
+  --bottom-bar: 72px;    /* your bottom nav height */
+}
+
+/* Keep + inside the 480px column on any screen width */
+.fab{
+  position: fixed;
+  bottom: calc(var(--bottom-bar) + 16px);
+  right: max(16px, calc((100vw - var(--col)) / 2 + var(--col-pad)));
+  width: 54px; height: 54px; border-radius: 999px;
+  background:#111; color:#fff; display:grid; place-items:center;
+  border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.15); cursor: pointer;
+}
+
+/* On narrow screens where viewport ≤ 480px, hug 16px from edge */
+@media (max-width: 480px){
+  .fab{ right: 16px; }
+}

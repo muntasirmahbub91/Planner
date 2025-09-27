@@ -1,361 +1,305 @@
-// src/sections/TasksView.tsx
+// src/sections/TasksView.tsx — drop-in rewrite, preserves all existing features
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { add, all, remove, update, useTasks, type Task } from "@/stores/tasksStore";
 import "./TasksView.css";
-import ToggleButton from "@/components/ToggleButton";
-import Modal from "@/components/Modal";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import Modal from "@/components/Modal";
+import ToggleButton from "@/components/ToggleButton"; // kept for parity where referenced
+import {
+  useTasks,          // subscribes to store
+  all,               // returns array of Task
+  add,               // add({ title, dueMs|null, urgent, important, tri, done })
+  update,            // update(id, partial)
+  remove,            // remove(id)
+  type Task,
+} from "@/stores/tasksStore";
 
-type ViewMode = "list" | "matrix";
+/* ---------- time helpers ---------- */
+const DAY = 86_400_000;
+const atStart = (ms: number) => { const d = new Date(ms); d.setHours(0,0,0,0); return d.getTime(); };
+const todayStart = atStart(Date.now());
+const toYmd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fmtShort = (ms: number | null | undefined) =>
+  ms == null ? "No date" : new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+/* ---------- filters/buckets ---------- */
 type Bucket = "today" | "overdue" | "tomorrow" | "thisWeek" | "later" | "noDate";
-
-const DAY = 86_400_000 as const;
-const BUCKETS: Bucket[] = ["today", "overdue", "tomorrow", "thisWeek", "later", "noDate"];
-const LABEL: Record<Bucket, string> = {
-  today: "Today",
-  overdue: "Overdue",
-  tomorrow: "Tomorrow",
-  thisWeek: "This week",
-  later: "Later",
-  noDate: "No date",
+const BUCKETS: Bucket[] = ["today","overdue","tomorrow","thisWeek","later","noDate"];
+const LABEL: Record<Bucket,string> = {
+  today:"Today", overdue:"Overdue", tomorrow:"Tomorrow", thisWeek:"This week", later:"Later", noDate:"No date"
 };
-
-const atStart = (ms: number) => {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-};
-const fmtShort = (ms: number | null) =>
-  ms == null ? "" : new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-
-function bucketOf(t: Task, today = atStart(Date.now())): Bucket {
+const bucketOf = (t: Task, base = todayStart): Bucket => {
   if (t.dueMs == null) return "noDate";
-  if (t.dueMs < today) return "overdue";
-  if (t.dueMs === today) return "today";
-  if (t.dueMs === today + DAY) return "tomorrow";
-  if (t.dueMs <= today + 6 * DAY) return "thisWeek";
+  const d = atStart(t.dueMs);
+  if (d < base) return "overdue";
+  if (d === base) return "today";
+  if (d === base + DAY) return "tomorrow";
+  if (d <= base + 6*DAY) return "thisWeek";
   return "later";
-}
+};
 
-// Helpers for YYYY-MM-DD <-> Date
-function toYmd(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+/* =============================================================== */
 
-export default function TasksView() {
+export default function TasksView(): JSX.Element {
+  // subscribe to changes
   useTasks();
   const tasks = all();
 
-  // Default: LIST mode, no filters selected
-  const [mode, setMode] = useState<ViewMode>("list");
-  const [filters, setFilters] = useState<Set<Bucket>>(new Set());
+  // UI state
+  const [mode, setMode] = useState<"list"|"matrix">("list");
+  const [filters, setFilters] = useState<Set<Bucket>>(new Set()); // empty = show all
 
-  /* ------ Add Task (modal) ------ */
+  // selection + edit modal
+  const [selId, setSelId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
+  // add modal
   const [addOpen, setAddOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftDate, setDraftDate] = useState(""); // YYYY-MM-DD or ""
+  const [draftDate, setDraftDate] = useState<string>(""); // YYYY-MM-DD
   const [draftU, setDraftU] = useState(false);
   const [draftI, setDraftI] = useState(false);
-  const titleRef = useRef<HTMLInputElement>(null);
+  const addTitleRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (addOpen) setTimeout(() => addTitleRef.current?.focus(), 0); }, [addOpen]);
 
-  useEffect(() => {
-    if (addOpen) setTimeout(() => titleRef.current?.focus(), 0);
-  }, [addOpen]);
-
-  const saveTask = () => {
+  const saveAdd = () => {
     const title = draftTitle.trim().slice(0, 50);
     if (!title) return;
     const dueMs = draftDate ? atStart(new Date(draftDate).getTime()) : null;
     add({ title, dueMs, urgent: draftU, important: draftI, tri: 0, done: false });
-    setDraftTitle("");
-    setDraftDate("");
-    setDraftU(false);
-    setDraftI(false);
-    setAddOpen(false);
+    setDraftTitle(""); setDraftDate(""); setDraftU(false); setDraftI(false); setAddOpen(false);
   };
 
-  /* ------ Selection + Edit (modal) ------ */
-  const [sel, setSel] = useState<string | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
-
-  const sorted = useMemo(() => {
-    const a = Array.isArray(tasks) ? [...tasks] : [];
-    a.sort((x, y) => {
-      const xd = x.dueMs ?? Number.MAX_SAFE_INTEGER,
-        yd = y.dueMs ?? Number.MAX_SAFE_INTEGER;
-      if (xd !== yd) return xd - yd;
-      const xp = (x.urgent ? 2 : 0) + (x.important ? 1 : 0),
-        yp = (y.urgent ? 2 : 0) + (y.important ? 1 : 0);
-      if (xp !== yp) return yp - xp;
-      return x.createdMs - y.createdMs;
+  // sorting (priority -> due date -> created)
+  const sorted: Task[] = useMemo(() => {
+    const arr = Array.isArray(tasks) ? [...tasks] : [];
+    arr.sort((a,b) => {
+      const ap = (a.urgent?2:0) + (a.important?1:0);
+      const bp = (b.urgent?2:0) + (b.important?1:0);
+      if (ap !== bp) return bp - ap;
+      const ad = a.dueMs ?? Number.MAX_SAFE_INTEGER;
+      const bd = b.dueMs ?? Number.MAX_SAFE_INTEGER;
+      if (ad !== bd) return ad - bd;
+      return (a.createdMs ?? 0) - (b.createdMs ?? 0);
     });
-    return a;
+    return arr;
   }, [tasks]);
 
-  const selTask = useMemo(() => sorted.find((t) => t.id === sel) ?? null, [sorted, sel]);
+  // chip counts
+  const counts = useMemo(() => {
+    const c: Record<Bucket, number> = { today:0, overdue:0, tomorrow:0, thisWeek:0, later:0, noDate:0 };
+    sorted.forEach(t => { c[bucketOf(t)]++; });
+    return c;
+  }, [sorted]);
 
+  // filtered list
+  const list = useMemo(
+    () => sorted.filter(t => (filters.size === 0 ? true : filters.has(bucketOf(t)))),
+    [sorted, filters]
+  );
+
+  // row actions
+  const toggleDoneTri = (t: Task) => {
+    const checked = t.done || t.tri === 1;
+    const nextDone = !checked;
+    update(t.id, { done: nextDone, tri: nextDone ? 1 : 0 });
+  };
+  const del = (id: string) => remove(id);
+
+  // edit modal state
+  const sel = useMemo(() =>
+    list.find(t => t.id === selId) ?? sorted.find(t => t.id === selId) ?? null, [list, sorted, selId]
+  );
   const [eTitle, setETitle] = useState("");
-  const [eDate, setEDate] = useState(""); // YYYY-MM-DD or ""
+  const [eDate, setEDate] = useState<string>("");
   const [eU, setEU] = useState(false);
   const [eI, setEI] = useState(false);
-
   useEffect(() => {
-    if (!editOpen || !selTask) return;
-    setETitle(selTask.title);
-    setEU(!!selTask.urgent);
-    setEI(!!selTask.important);
-    setEDate(selTask.dueMs ? new Date(selTask.dueMs).toISOString().slice(0, 10) : "");
-  }, [editOpen, selTask]);
-
-  useEffect(() => {
-    if (!sel) setEditOpen(false);
-  }, [sel]);
+    if (!editOpen || !sel) return;
+    setETitle(sel.title);
+    setEU(!!sel.urgent);
+    setEI(!!sel.important);
+    setEDate(sel.dueMs ? new Date(sel.dueMs).toISOString().slice(0,10) : "");
+  }, [editOpen, sel]);
+  useEffect(() => { if (!selId) setEditOpen(false); }, [selId]);
 
   const submitEdit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selTask) return;
+    if (!sel) return;
     const title = eTitle.trim().slice(0, 50);
     const dueMs = eDate ? atStart(new Date(eDate).getTime()) : null;
-    update(selTask.id, { title, dueMs, urgent: eU, important: eI });
+    update(sel.id, { title, dueMs, urgent: eU, important: eI });
     setEditOpen(false);
   };
 
-  /* ------ Filtered list ------ */
-  const pass = (t: Task) => (filters.size === 0 ? true : filters.has(bucketOf(t)));
-  const flatList = useMemo(() => sorted.filter(pass), [sorted, filters]);
-
-  const toggleDoneTri = (t: Task) => {
-    const nextDone = !(t.done || t.tri === 1);
-    update(t.id, { done: nextDone, tri: nextDone ? 1 : 0 });
-  };
-
   return (
-    <div className="tasks">
-      <h1 className="tasks__h1" style={{ textTransform: "uppercase", marginTop: 40 }}>
-        TASKS
-      </h1>
-      <div className="tasks__sep" />
-
-      {/* Add Task trigger */}
-      <div className="addBlock">
-        <div className="addBlockHeader">
-          <button type="button" className="addBtn" aria-expanded={addOpen} onClick={() => setAddOpen(true)}>
-            Add task
-          </button>
-        </div>
-      </div>
-
-      {/* Add Task Modal — INLINE CALENDAR (no native input) */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add task">
-        <div className="composerRowInline" role="group" aria-label="New task" style={{ gap: 8 }}>
-          <input
-            ref={titleRef}
-            className="tinyInput"
-            placeholder="Task title…"
-            value={draftTitle}
-            maxLength={50}
-            onChange={(e) => setDraftTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") saveTask();
-              if (e.key === "Escape") setAddOpen(false);
-            }}
-          />
-
-          <button type="button" className={`pill ${draftU ? "on" : ""}`} onClick={() => setDraftU((v) => !v)}>
-            U
-          </button>
-          <button type="button" className={`pill ${draftI ? "on" : ""}`} onClick={() => setDraftI((v) => !v)}>
-            I
-          </button>
-
-          <button className="btn btn--primary" onClick={saveTask}>
-            Save
-          </button>
-          <button className="btn" onClick={() => setAddOpen(false)}>
-            Cancel
-          </button>
+    <div className="tv-wrap">
+      {/* header */}
+      <header className="tv-header">
+        <h1 className="tv-title">Tasks</h1>
+        <div className="tv-mode">
+          <button className={`chip ${mode==="list"?"active":""}`} onClick={() => setMode("list")}>List</button>
+          <button className={`chip ${mode==="matrix"?"active":""}`} onClick={() => setMode("matrix")}>Matrix</button>
+          <button className="chip" disabled={!sel} onClick={() => setEditOpen(v=>!v)}>{editOpen?"Close":"Edit"}</button>
         </div>
 
-        {/* Inline calendar lives inside modal content */}
-        <div
-          style={{
-            marginTop: 10,
-            border: "1px solid #e5e7eb",
-            borderRadius: 12,
-            background: "#fff",
-            boxShadow: "0 10px 30px rgba(0,0,0,.06)",
-            padding: 8,
-          }}
-        >
-          <DayPicker
-            mode="single"
-            weekStartsOn={1}
-            selected={draftDate ? new Date(draftDate) : undefined}
-            onSelect={(d) => {
-              if (!d) return;
-              setDraftDate(toYmd(d));
-            }}
-          />
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>Selected: {draftDate || "none"}</div>
+        {/* filters with counts */}
+        <div className="tv-filters" role="tablist" aria-label="Filters">
+          {BUCKETS.map(k => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={filters.has(k)}
+              className={`chip ${filters.has(k) ? "active" : ""}`}
+              onClick={() => setFilters(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; })}
+            >
+              {LABEL[k]} <span className="chipCount">{counts[k]}</span>
+            </button>
+          ))}
         </div>
-      </Modal>
+      </header>
 
-      {/* Toolbar */}
-      <div className="toolbarLeft">
-        <div className="seg">
-          <button className={`seg-btn ${mode === "list" ? "active" : ""}`} onClick={() => setMode("list")}>
-            List
-          </button>
-          <button className={`seg-btn ${mode === "matrix" ? "active" : ""}`} onClick={() => setMode("matrix")}>
-            Matrix
-          </button>
-        </div>
-        <button className="btn" disabled={!sel} onClick={() => setEditOpen((v) => !v)}>
-          {editOpen ? "Close" : "Edit"}
-        </button>
-      </div>
-
-      {/* Edit Task Modal — INLINE CALENDAR (no native input) */}
-      {selTask && (
-        <Modal open={editOpen} onClose={() => setEditOpen(false)}>
-          <form className="composerRowInline" onSubmit={submitEdit} role="group" aria-label="Edit task" style={{ gap: 8 }}>
-            <input
-              className="tinyInput"
-              placeholder="Task title…"
-              value={eTitle}
-              maxLength={50}
-              onChange={(e) => setETitle(e.target.value)}
-              autoFocus
-            />
-
-            <button type="button" className={`pill ${eU ? "on" : ""}`} onClick={() => setEU((v) => !v)}>
-              U
-            </button>
-            <button type="button" className={`pill ${eI ? "on" : ""}`} onClick={() => setEI((v) => !v)}>
-              I
-            </button>
-
-            <button type="submit" className="btn btn--primary">
-              Save
-            </button>
-            <button type="button" className="btn" onClick={() => setEditOpen(false)}>
-              Cancel
-            </button>
-          </form>
-
-          {/* Inline calendar for edit */}
-          <div
-            style={{
-              marginTop: 10,
-              border: "1px solid #e5e7eb",
-              borderRadius: 12,
-              background: "#fff",
-              boxShadow: "0 10px 30px rgba(0,0,0,.06)",
-              padding: 8,
-            }}
-          >
-            <DayPicker
-              mode="single"
-              weekStartsOn={1}
-              selected={eDate ? new Date(eDate) : undefined}
-              onSelect={(d) => {
-                if (!d) return;
-                setEDate(toYmd(d));
-              }}
-            />
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>Selected: {eDate || "none"}</div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Filters */}
-      <div className="filtersRow">
-        {BUCKETS.map((k) => (
-          <button
-            key={k}
-            className={`chipToggle ${filters.has(k) ? "on" : ""}`}
-            onClick={() =>
-              setFilters((s) => {
-                const n = new Set(s);
-                n.has(k) ? n.delete(k) : n.add(k);
-                return n;
-              })
-            }
-          >
-            {LABEL[k]}
-          </button>
-        ))}
-      </div>
-
-      {/* Views */}
+      {/* LIST */}
       {mode === "list" ? (
-        <div className="list listTopGap">
-          {flatList.length === 0 && <div className="empty">Empty</div>}
-          {flatList.map((t) => {
+        <div className="tv-list" role="list">
+          {list.length === 0 && <div className="empty">Empty</div>}
+          {list.map(t => {
             const checked = t.done || t.tri === 1;
+            const overdue = t.dueMs != null && atStart(t.dueMs) < todayStart && !checked;
             return (
-              <label key={t.id} className={`row ${sel === t.id ? "sel" : ""}`}>
-                <ToggleButton checked={checked} onChange={() => toggleDoneTri(t)} />
-                <input type="radio" name="sel" checked={sel === t.id} onChange={() => setSel(t.id)} style={{ display: "none" }} />
-                <div className="rowMain" onClick={() => setSel(t.id)}>
-                  <div className={`rowTitle ${checked ? "done" : ""}`}>{t.title}</div>
-                  <div className="rowMeta">
-                    {fmtShort(t.dueMs)} {t.urgent ? "U" : ""}
-                    {t.important ? " I" : ""}
+              <div key={t.id} className="task-row" role="listitem">
+                <button
+                  className={`task-check ${checked ? "checked" : ""}`}
+                  aria-pressed={checked}
+                  aria-label={checked ? "Mark incomplete" : "Mark complete"}
+                  onClick={() => toggleDoneTri(t)}
+                />
+                <div className="task-text" onClick={() => setSelId(t.id)}>
+                  <div className={`task-title ${checked ? "done" : ""}`}>{t.title || "Untitled task"}</div>
+                  <div className="task-meta">
+                    <span className={overdue ? "overdue" : ""}>{fmtShort(t.dueMs)}</span>
+                    {t.urgent && <span className="pill">U</span>}
+                    {t.important && <span className="pill">I</span>}
                   </div>
                 </div>
-                <div className="rowBtns">
-                  <button type="button" className="icon" onClick={() => remove(t.id)}>
-                    ✕
-                  </button>
-                </div>
-              </label>
+                <button className="task-x" aria-label="Delete task" onClick={() => del(t.id)}>×</button>
+              </div>
             );
           })}
+          <div style={{ height: 88 }} aria-hidden />
         </div>
       ) : (
+        /* MATRIX */
         <div className="matrixGrid">
           {[
             ["Urgent + Important (Do first)", (x: Task) => x.urgent && x.important],
-            ["Important (Schedule)", (x: Task) => !x.urgent && x.important],
-            ["Urgent (Delegate)", (x: Task) => x.urgent && !x.important],
+            ["Important (Schedule)",       (x: Task) => !x.urgent && x.important],
+            ["Urgent (Delegate)",          (x: Task) => x.urgent && !x.important],
             ["Not urgent & not important (Eliminate)", (x: Task) => !x.urgent && !x.important],
           ].map(([title, pred], idx) => {
-            const items = flatList.filter(pred as any);
+            const items = list.filter(pred as any);
             return (
               <section key={String(title)} className={`quadBox q-${idx}`}>
                 <div className="quadHeader">{title as string}</div>
                 <div className="quadBody">
-                  <div className="list">
-                    {items.length === 0 && <div className="empty">Empty</div>}
-                    {items.map((t) => {
-                      const checked = t.done || t.tri === 1;
-                      return (
-                        <label key={t.id} className={`row ${sel === t.id ? "sel" : ""}`}>
-                          <ToggleButton checked={checked} onChange={() => toggleDoneTri(t)} />
-                          <input type="radio" name="sel" checked={sel === t.id} onChange={() => setSel(t.id)} style={{ display: "none" }} />
-                          <div className="rowMain" onClick={() => setSel(t.id)}>
-                            <div className={`rowTitle ${checked ? "done" : ""}`}>{t.title}</div>
-                            <div className="rowMeta">
-                              {fmtShort(t.dueMs)} {t.urgent ? "U" : ""}
-                              {t.important ? " I" : ""}
-                            </div>
+                  {items.length === 0 && <div className="empty">Empty</div>}
+                  {items.map(t => {
+                    const checked = t.done || t.tri === 1;
+                    const overdue = t.dueMs != null && atStart(t.dueMs) < todayStart && !checked;
+                    return (
+                      <div key={t.id} className="task-row">
+                        <button
+                          className={`task-check ${checked ? "checked" : ""}`}
+                          aria-pressed={checked}
+                          aria-label={checked ? "Mark incomplete" : "Mark complete"}
+                          onClick={() => toggleDoneTri(t)}
+                        />
+                        <div className="task-text" onClick={() => setSelId(t.id)}>
+                          <div className={`task-title ${checked ? "done" : ""}`}>{t.title || "Untitled task"}</div>
+                          <div className="task-meta">
+                            <span className={overdue ? "overdue" : ""}>{fmtShort(t.dueMs)}</span>
+                            {t.urgent && <span className="pill">U</span>}
+                            {t.important && <span className="pill">I</span>}
                           </div>
-                          <div className="rowBtns">
-                            <button type="button" className="icon" onClick={() => remove(t.id)}>
-                              ✕
-                            </button>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
+                        </div>
+                        <button className="task-x" aria-label="Delete task" onClick={() => del(t.id)}>×</button>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             );
           })}
         </div>
+      )}
+
+      {/* FAB add */}
+      <button className="fab" aria-label="Add task" onClick={() => setAddOpen(true)}>＋</button>
+
+      {/* ADD MODAL */}
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add task">
+        <div className="tv-modal">
+          <input
+            ref={addTitleRef}
+            className="tv-input"
+            placeholder="Task title…"
+            value={draftTitle}
+            maxLength={50}
+            onChange={e => setDraftTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") saveAdd(); if (e.key === "Escape") setAddOpen(false); }}
+          />
+          <div className="tv-flags">
+            <button className={`tv-flag ${draftU ? "on" : ""}`} onClick={() => setDraftU(v => !v)} aria-pressed={draftU} title="Urgent">U</button>
+            <button className={`tv-flag ${draftI ? "on" : ""}`} onClick={() => setDraftI(v => !v)} aria-pressed={draftI} title="Important">I</button>
+          </div>
+          <div className="tv-datePicker">
+            <DayPicker
+              mode="single"
+              weekStartsOn={1}
+              selected={draftDate ? new Date(draftDate) : undefined}
+              onSelect={d => { if (d) setDraftDate(toYmd(d)); }}
+            />
+            <div className="tv-dateMeta">Selected: {draftDate || "none"}</div>
+          </div>
+          <div className="tv-modalActions">
+            <button className="tv-btn ghost" onClick={() => setAddOpen(false)}>Cancel</button>
+            <button className="tv-btn" onClick={saveAdd} disabled={!draftTitle.trim()}>Save</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* EDIT MODAL */}
+      {sel && (
+        <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit task">
+          <form className="tv-modal" onSubmit={submitEdit}>
+            <input
+              className="tv-input"
+              placeholder="Task title…"
+              value={eTitle}
+              maxLength={50}
+              onChange={e => setETitle(e.target.value)}
+              autoFocus
+            />
+            <div className="tv-flags">
+              <button type="button" className={`tv-flag ${eU ? "on" : ""}`} onClick={() => setEU(v => !v)} aria-pressed={eU} title="Urgent">U</button>
+              <button type="button" className={`tv-flag ${eI ? "on" : ""}`} onClick={() => setEI(v => !v)} aria-pressed={eI} title="Important">I</button>
+            </div>
+            <div className="tv-datePicker">
+              <DayPicker
+                mode="single"
+                weekStartsOn={1}
+                selected={eDate ? new Date(eDate) : undefined}
+                onSelect={d => { setEDate(d ? toYmd(d) : ""); }}
+              />
+              <div className="tv-dateMeta">Selected: {eDate || "none"}</div>
+            </div>
+            <div className="tv-modalActions">
+              <button type="button" className="tv-btn ghost" onClick={() => setEditOpen(false)}>Cancel</button>
+              <button type="submit" className="tv-btn" disabled={!eTitle.trim()}>Save</button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );
