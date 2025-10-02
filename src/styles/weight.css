@@ -1,0 +1,430 @@
+/* src/styles/weight.css */
+
+/* Tokens (inherits your global tokens if present) */
+:root {
+  --wtk-bg: #111214;
+  --wtk-surface: #1a1b1e;
+  --wtk-surface-2: #202226;
+  --wtk-text: #e8e8ea;
+  --wtk-text-dim: #a5a7ac;
+  --wtk-accent: var(--accent, #e29612);
+  --wtk-danger: #d64545;
+  --wtk-ok: #2ea043;
+
+  --wtk-border: #2a2c31;
+  --wtk-ring: rgba(226, 150, 18, 0.35);
+
+  --wtk-radius: 16px;
+  --wtk-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+  --wtk-font: var(--font-ui, "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji");
+}
+
+/* --- Section wrapper --- */
+.wtk__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--wtk-font);
+  color: var(--wtk-text);
+}
+
+.wtk__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.wtk__title {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.wtk__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--wtk-text-dim);
+  font-size: 12px;
+}
+
+.wtk__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--wtk-surface-2);
+  border: 1px solid var(--wtk-border);
+  color: var(--wtk-text);
+  font-weight: 600;
+}
+
+.wtk__card {
+  background: var(--wtk-surface);
+  border: 1px solid var(--wtk-border);
+  border-radius: var(--wtk-radius);
+  box-shadow: var(--wtk-shadow);
+  padding: 12px;
+}
+
+.wtk__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* --- Buttons --- */
+.wtk__btn {
+  appearance: none;
+  border: 1px solid var(--wtk-border);
+  background: var(--wtk-surface-2);
+  color: var(--wtk-text);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.03s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.wtk__btn:hover { border-color: #3a3d44; }
+.wtk__btn:active { transform: translateY(1px); }
+.wtk__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wtk-ring); }
+
+.wtk__btnPrimary {
+  background: linear-gradient(180deg, var(--wtk-accent), #c67d0f);
+  border-color: #b6710e;
+  color: #121212;
+}
+.wtk__btnPrimary:hover { filter: brightness(1.05); }
+
+.wtk__btnDanger {
+  background: linear-gradient(180deg, #e35d5d, var(--wtk-danger));
+  border-color: #b73f3f;
+  color: #fff;
+}
+
+/* Unit switch */
+.wtk__unitSwitch {
+  display: inline-flex;
+  background: var(--wtk-surface-2);
+  border: 1px solid var(--wtk-border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 4px;
+}
+.wtk__chip {
+  border: 0;
+  background: transparent;
+  color: var(--wtk-text-dim);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wtk__chip.is-active {
+  background: var(--wtk-accent);
+  color: #121212;
+}
+
+/* Hint */
+.wtk__hint {
+  margin-top: 8px;
+  color: var(--wtk-text-dim);
+  font-size: 12px;
+}
+
+/* --- Modal --- */
+.wtk__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-areas: "stack";
+}
+.wtk__sheet, .wtk__bg { grid-area: stack; }
+
+.wtk__bg {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.wtk__sheet {
+  place-self: end center;
+  width: min(480px, 96vw);
+  border-radius: 20px 20px 0 0;
+  background: var(--wtk-surface);
+  border: 1px solid var(--wtk-border);
+  border-bottom: none;
+  padding: 14px 12px 12px;
+  box-shadow: 0 -12px 30px rgba(0,0,0,0.45);
+  transform: translateY(0);
+  animation: wtkSlideUp 140ms ease-out;
+  position: relative;
+}
+
+@keyframes wtkSlideUp {
+  from { transform: translateY(12%); opacity: 0.8; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.wtk__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--wtk-border);
+  background: var(--wtk-surface-2);
+  color: var(--wtk-text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wtk__modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wtk__modalHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+.wtk__modalTitle {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.wtk__modalDate {
+  color: var(--wtk-text-dim);
+  font-size: 12px;
+}
+
+/* Inputs */
+.wtk__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wtk__field { display: grid; gap: 6px; }
+.wtk__label { font-size: 12px; color: var(--wtk-text-dim); }
+
+.wtk__fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--wtk-surface-2);
+  border: 1px solid var(--wtk-border);
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.wtk__number {
+  appearance: textfield;
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--wtk-text);
+  font-size: 16px;
+  font-weight: 700;
+  outline: none;
+}
+.wtk__number::-webkit-outer-spin-button,
+.wtk__number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.wtk__unit { color: var(--wtk-text-dim); font-weight: 700; }
+
+.wtk__range {
+  width: 100%;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #2b2e34;
+  outline: none;
+}
+.wtk__range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--wtk-accent);
+  border: 2px solid #141416;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--wtk-ring);
+}
+.wtk__range::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 999px;
+  background: var(--wtk-accent); border: 2px solid #141416; cursor: pointer;
+}
+
+/* Actions */
+.wtk__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wtk__spacer { flex: 1; }
+
+/* --- Dial --- */
+.wtk__dialWrap {
+  display: grid;
+  place-items: center;
+  padding: 4px 0 2px;
+}
+
+.wtk__dial {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.wtk__dialTrack {
+  fill: none;
+  stroke: #2b2e34;
+  stroke-width: 12;
+}
+
+.wtk__dialArc {
+  fill: none;
+  stroke: var(--wtk-accent);
+  stroke-width: 12;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 6px rgba(226,150,18,0.35));
+}
+
+.wtk__dialTick {
+  stroke: #3a3d44;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.wtk__dialNeedle {
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.wtk__dialHub { fill: #fff; }
+
+.wtk__dialVal {
+  font-size: 22px;
+  font-weight: 800;
+  fill: var(--wtk-text);
+}
+.wtk__dialUnit {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--wtk-text-dim);
+}
+
+.wtk__dial.is-dragging { cursor: grabbing; }
+
+/* --- Sparkline --- */
+.wtk__sparkWrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px dashed var(--wtk-border);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+}
+
+.wtk__spark {
+  width: 100%;
+  height: 56px;
+}
+
+.wtk__sparkPath {
+  fill: none;
+  stroke: var(--wtk-ok);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.wtk__sparkDot {
+  fill: var(--wtk-ok);
+}
+
+.wtk__sparkMeta {
+  display: grid;
+  gap: 2px;
+  min-width: 120px;
+  justify-items: end;
+}
+.wtk__sparkNow {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.wtk__sparkRange {
+  color: var(--wtk-text-dim);
+  font-size: 11px;
+}
+
+/* Empty */
+.wtk__empty {
+  color: var(--wtk-text-dim);
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+
+/* Small screens tightening */
+@media (max-width: 420px) {
+  .wtk__sheet { width: 100vw; border-radius: 16px 16px 0 0; }
+  .wtk__row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .wtk__unitSwitch { align-self: flex-end; }
+}
+/* Keep modal above footer and make it scrollable */
+.wtk__overlay { z-index: 2000; }
+
+.wtk__sheet {
+  max-height: calc(100dvh - 96px);
+  overflow: auto;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* Pin action row above the safe area so Save/Cancel are always visible */
+.wtk__actions {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.25)) , var(--wtk-surface);
+  border-top: 1px solid var(--wtk-border);
+  padding-top: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+/* graph modal */
+.wtk__graphModal { gap: 10px; }
+.wtk__rowRight { display: inline-flex; gap: 8px; align-items: center; }
+
+.wtk__chartToolbar {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.wtk__seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+.wtk__chartWrap {
+  border: 1px dashed var(--wtk-border);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  padding: 6px;
+}
+.wtk__chart { width: 100%; height: 220px; }
+.wtk__axis { stroke: #3a3d44; stroke-width: 1; }
+.wtk__grid { stroke: #2f3238; stroke-width: 1; }
+.wtk__chartPath { fill: none; stroke: var(--wtk-ok); stroke-width: 2; vector-effect: non-scaling-stroke; }

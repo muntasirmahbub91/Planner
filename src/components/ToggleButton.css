@@ -1,6 +1,6 @@
 /* ToggleButton: robust circular control */
 .ui-ToggleButton {
-  --tgl-size: 32px;
+  --tgl-size: 23px;
   --tgl-hit: 44px;
   --tgl-off-bg: #e5e7eb;
   --tgl-off-border: #cbd5e1;

@@ -3,6 +3,7 @@ import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
 import TasksSection from "@/sections/TasksSection";
 import RemindersWindow from "@/sections/RemindersWindow";
 import HabitsSection from "@/sections/HabitsSection";
+import WeightTracker from "@/sections/WeightTracker";
 import "./DayView.css";
 
 // Local navigation via store getters avoids extra subscriptions
@@ -29,17 +30,18 @@ function fmtDaySubtitle(eDay: number) {
     year: "numeric",
   });
 }
+function toLocalISO(d: Date) {
+  const tzOff = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOff).toISOString().slice(0, 10);
+}
 
 export default function DayView() {
-  // Narrow selector: only subscribe to the primitive `selected` value
   const eDay = useDateStore((s) => s.selected);
   const setTodaySelected = useDateStore((s) => s.setTodaySelected);
 
-  // Memoize derived UI strings to avoid recomputation on unrelated renders
   const title = React.useMemo(() => fmtDayTitle(eDay), [eDay]);
   const subtitle = React.useMemo(() => fmtDaySubtitle(eDay), [eDay]);
 
-  // Keyboard navigation without subscribing this component to other stores
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -51,6 +53,8 @@ export default function DayView() {
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [setTodaySelected]);
+
+  const dateISO = toLocalISO(new Date(dayMs(eDay)));
 
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16 }}>
@@ -79,10 +83,11 @@ export default function DayView() {
         <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={goNextDay}>›</button>
       </section>
 
-      {/* Content: sections implement their own narrow selectors */}
+      {/* Content */}
       <section><TasksSection /></section>
       <section><RemindersWindow hideOverdue /></section>
       <section aria-label="Habits"><HabitsSection /></section>
+      <section aria-label="Weight"><WeightTracker dateISO={dateISO} /></section>
     </main>
   );
 }
