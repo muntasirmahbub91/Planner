@@ -1,4 +1,4 @@
-// src/sections/WeightTracker.tsx
+// src/sections/WeightTracker.tsx — drop-in rewrite with robust text input + graph modal
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useWeightStore } from "../stores/weight";
 import type { Units, WeightEntry } from "../stores/weight";
@@ -9,29 +9,71 @@ export default function WeightTracker({ dateISO }: { dateISO?: string }) {
   const iso = dateISO ?? todayISO;
 
   const { entries, units, setUnits, addOrUpdate, remove } = useWeightStore();
-  const [open, setOpen] = useState(false);
-  const [graphOpen, setGraphOpen] = useState(false);
 
   const existing = useMemo(
     () => entries.find((e) => e.date === iso),
     [entries, iso]
   );
 
+  const [open, setOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+
+  // canonical numeric value in kg
   const [valKg, setValKg] = useState<number>(existing?.kg ?? 70);
+
+  // user-editable text field that tolerates partial input
+  const [weightText, setWeightText] = useState<string>("");
+
+  // dragging state for dial
   const [dragging, setDragging] = useState(false);
 
-  const minKg = 30, maxKg = 180, stepKg = 0.1;
+  // bounds
+  const minKg = 30;
+  const maxKg = 180;
+  const stepKg = 0.1;
 
-  useEffect(() => { if (existing) setValKg(existing.kg); }, [existing?.kg, iso]);
+  // whenever entry or date changes, sync numeric and text
+  useEffect(() => {
+    const kg = existing?.kg ?? 70;
+    setValKg(kg);
+  }, [existing?.kg, iso]);
+
+  // keep text view in sync with numeric value and unit
+  useEffect(() => {
+    const v = units === "kg" ? clamp(valKg, minKg, maxKg) : kgToLb(clamp(valKg, minKg, maxKg));
+    setWeightText(format1(v));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valKg, units]);
 
   const unitLabel = units === "kg" ? "kg" : "lb";
-  const shownValue =
-    units === "kg"
-      ? format1(clamp(valKg, minKg, maxKg))
-      : format1(kgToLb(clamp(valKg, minKg, maxKg)));
 
-  const onConfirm = () => { addOrUpdate(iso, clamp(valKg, minKg, maxKg)); setOpen(false); };
-  const onDelete = () => { remove(iso); setOpen(false); };
+  function commitWeightText() {
+    const raw = weightText.trim();
+    if (!raw) {
+      // revert on empty
+      const v = units === "kg" ? valKg : kgToLb(valKg);
+      setWeightText(format1(v));
+      return;
+    }
+    const n = Number(raw.replace(/,/g, ""));
+    if (Number.isFinite(n)) {
+      const asKg = units === "kg" ? n : lbToKg(n);
+      const clamped = clamp(asKg, minKg, maxKg);
+      setValKg(clamped);
+    } else {
+      const v = units === "kg" ? valKg : kgToLb(valKg);
+      setWeightText(format1(v));
+    }
+  }
+
+  const onConfirm = () => {
+    addOrUpdate(iso, clamp(valKg, minKg, maxKg));
+    setOpen(false);
+  };
+  const onDelete = () => {
+    remove(iso);
+    setOpen(false);
+  };
 
   const lastN = useMemo(() => {
     const sorted = [...entries].sort((a, b) => a.ts - b.ts);
@@ -114,7 +156,10 @@ export default function WeightTracker({ dateISO }: { dateISO?: string }) {
               valueKg={valKg}
               minKg={minKg}
               maxKg={maxKg}
-              onChangeKg={setValKg}
+              onChangeKg={(kg) => {
+                setValKg(kg);
+                setWeightText(format1(units === "kg" ? kg : kgToLb(kg)));
+              }}
               dragging={dragging}
               setDragging={setDragging}
             />
@@ -123,16 +168,18 @@ export default function WeightTracker({ dateISO }: { dateISO?: string }) {
               <label className="wtk__field">
                 <span className="wtk__label">Weight</span>
                 <div className="wtk__fieldRow">
+                  {/* Text input that allows partial edits and commits on blur/Enter */}
                   <input
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step={units === "kg" ? stepKg : 0.1}
-                    min={units === "kg" ? minKg : kgToLb(minKg)}
-                    max={units === "kg" ? maxKg : kgToLb(maxKg)}
-                    value={shownValue}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value || "0");
-                      setValKg(units === "kg" ? v : lbToKg(v));
+                    pattern="[0-9]*[.,]?[0-9]*"
+                    value={weightText}
+                    onChange={(e) => setWeightText(e.target.value)}
+                    onBlur={commitWeightText}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur(); // triggers commit
+                      }
                     }}
                     className="wtk__number"
                     aria-label={`Weight in ${unitLabel}`}
@@ -147,7 +194,11 @@ export default function WeightTracker({ dateISO }: { dateISO?: string }) {
                 max={maxKg}
                 step={stepKg}
                 value={clamp(valKg, minKg, maxKg)}
-                onChange={(e) => setValKg(parseFloat(e.target.value))}
+                onChange={(e) => {
+                  const kg = parseFloat(e.target.value);
+                  setValKg(kg);
+                  setWeightText(format1(units === "kg" ? kg : kgToLb(kg)));
+                }}
                 className="wtk__range"
                 aria-label="Weight slider in kg"
               />
@@ -174,11 +225,7 @@ export default function WeightTracker({ dateISO }: { dateISO?: string }) {
       {/* Graph modal */}
       {graphOpen && (
         <Modal onClose={() => setGraphOpen(false)} ariaLabel="Weight graph">
-          <GraphModal
-            units={units}
-            entries={entries}
-            onClose={() => setGraphOpen(false)}
-          />
+          <GraphModal units={units} entries={entries} onClose={() => setGraphOpen(false)} />
         </Modal>
       )}
     </section>
@@ -196,8 +243,8 @@ function GraphModal({
   entries: WeightEntry[];
   onClose: () => void;
 }) {
-  const [days, setDays] = useState<number>(90); // default window
-  const dayOptions = [14, 30, 90, 180, 365, 99999]; // 99999 = All
+  const [days, setDays] = useState<number>(90);
+  const dayOptions = [14, 30, 90, 180, 365, 99999];
 
   const now = Date.now();
   const fromTs = days >= 99999 ? 0 : now - days * 86400000;
@@ -207,7 +254,9 @@ function GraphModal({
     return arr.filter((e) => e.ts >= fromTs);
   }, [entries, fromTs]);
 
-  const w = 440, h = 220, pad = 28;
+  const w = 440,
+    h = 220,
+    pad = 28;
 
   const view = filtered.length ? filtered : [...entries].slice(-1);
 
@@ -219,8 +268,7 @@ function GraphModal({
   const yMax = Math.max(...ys);
   const ySpan = yMax - yMin || 1;
 
-  const xScale = (t: number) =>
-    pad + ((t - xMin) / Math.max(xMax - xMin || 1, 1)) * (w - pad * 2);
+  const xScale = (t: number) => pad + ((t - xMin) / Math.max(xMax - xMin || 1, 1)) * (w - pad * 2);
   const yScale = (kg: number) => pad + (1 - (kg - yMin) / ySpan) * (h - pad * 2);
 
   const path = view
@@ -237,9 +285,7 @@ function GraphModal({
     <div className="wtk__modal wtk__graphModal">
       <div className="wtk__modalHead">
         <div className="wtk__modalTitle">Weight graph</div>
-        <div className="wtk__modalDate">
-          Window: {days >= 99999 ? "All" : `${days}d`}
-        </div>
+        <div className="wtk__modalDate">Window: {days >= 99999 ? "All" : `${days}d`}</div>
       </div>
 
       <div className="wtk__chartToolbar">
@@ -269,20 +315,14 @@ function GraphModal({
 
       <div className="wtk__chartWrap">
         <svg className="wtk__chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-          {/* Axes */}
           <line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} className="wtk__axis" />
           <line x1={pad} y1={pad} x2={pad} y2={h - pad} className="wtk__axis" />
-          {/* Grid */}
           {Array.from({ length: 4 }).map((_, i) => {
             const y = pad + (i / 4) * (h - pad * 2);
             return <line key={i} x1={pad} y1={y} x2={w - pad} y2={y} className="wtk__grid" />;
           })}
-          {/* Line */}
           <path d={path} className="wtk__chartPath" />
-          {/* Last dot */}
-          {view.length > 0 && (
-            <circle cx={xScale(last.ts)} cy={yScale(last.kg)} r="3" className="wtk__sparkDot" />
-          )}
+          {view.length > 0 && <circle cx={xScale(last.ts)} cy={yScale(last.kg)} r="3" className="wtk__sparkDot" />}
         </svg>
       </div>
 
@@ -291,14 +331,15 @@ function GraphModal({
           {units === "kg" ? `${format1(last.kg)} kg` : `${format1(kgToLb(last.kg))} lb`}
         </div>
         <div className="wtk__sparkRange">
-          Min {format1(units === "kg" ? yMin : kgToLb(yMin))} ·
-          Max {format1(units === "kg" ? yMax : kgToLb(yMax))}
+          Min {format1(units === "kg" ? yMin : kgToLb(yMin))} · Max {format1(units === "kg" ? yMax : kgToLb(yMax))}
         </div>
       </div>
 
       <div className="wtk__actions">
         <div className="wtk__spacer" />
-        <button type="button" className="wtk__btn" onClick={onClose}>Close</button>
+        <button type="button" className="wtk__btn" onClick={onClose}>
+          Close
+        </button>
       </div>
     </div>
   );
@@ -308,27 +349,36 @@ function GraphModal({
 
 function Modal(props: { children: React.ReactNode; onClose: () => void; ariaLabel: string }) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") props.onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") props.onClose();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [props]);
 
+  // bg first, sheet second to avoid bg overlay intercepting clicks
   return (
     <div className="wtk__overlay" role="dialog" aria-label={props.ariaLabel}>
       <div className="wtk__bg" onClick={props.onClose} />
       <div className="wtk__sheet" role="document">
-        <button className="wtk__close" aria-label="Close" onClick={props.onClose} type="button">×</button>
+        <button className="wtk__close" aria-label="Close" onClick={props.onClose} type="button">
+          ×
+        </button>
         {props.children}
       </div>
     </div>
   );
 }
 
-/* ---------------- Dial/Sparkline (unchanged) ---------------- */
+/* ---------------- Dial ---------------- */
 
 function Dial(props: {
-  valueKg: number; minKg: number; maxKg: number;
-  onChangeKg: (v: number) => void; dragging: boolean; setDragging: (b: boolean) => void;
+  valueKg: number;
+  minKg: number;
+  maxKg: number;
+  onChangeKg: (v: number) => void;
+  dragging: boolean;
+  setDragging: (b: boolean) => void;
 }) {
   const { valueKg, minKg, maxKg, onChangeKg, dragging, setDragging } = props;
   const ref = useRef<SVGSVGElement | null>(null);
@@ -339,11 +389,15 @@ function Dial(props: {
 
   const onPointer = (clientX: number, clientY: number) => {
     if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const theta = Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+    const rect = ref.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const theta = Math.atan2(dy, dx) * (180 / Math.PI); // -180..180
     const t = clamp((theta + 135) / 270, 0, 1);
-    onChangeKg(round1(minKg + t * (maxKg - minKg)));
+    const kg = minKg + t * (maxKg - minKg);
+    onChangeKg(round1(kg));
   };
 
   return (
@@ -352,31 +406,56 @@ function Dial(props: {
         ref={ref}
         className={`wtk__dial ${dragging ? "is-dragging" : ""}`}
         viewBox="0 0 200 200"
-        onMouseDown={(e) => { setDragging(true); onPointer(e.clientX, e.clientY); }}
+        onMouseDown={(e) => {
+          setDragging(true);
+          onPointer(e.clientX, e.clientY);
+        }}
         onMouseMove={(e) => dragging && onPointer(e.clientX, e.clientY)}
         onMouseUp={() => setDragging(false)}
         onMouseLeave={() => setDragging(false)}
-        onTouchStart={(e) => { setDragging(true); onPointer(e.touches[0].clientX, e.touches[0].clientY); }}
-        onTouchMove={(e) => onPointer(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchStart={(e) => {
+          setDragging(true);
+          const t = e.touches[0];
+          onPointer(t.clientX, t.clientY);
+        }}
+        onTouchMove={(e) => {
+          const t = e.touches[0];
+          onPointer(t.clientX, t.clientY);
+        }}
         onTouchEnd={() => setDragging(false)}
-        role="slider" aria-valuemin={minKg} aria-valuemax={maxKg} aria-valuenow={valueKg}
+        role="slider"
+        aria-valuemin={minKg}
+        aria-valuemax={maxKg}
+        aria-valuenow={valueKg}
         aria-label="Weight dial in kg"
       >
         <circle cx="100" cy="100" r="84" className="wtk__dialTrack" />
         <DialArc valueRatio={clamp(ratio, 0, 1)} />
         {Array.from({ length: 10 }).map((_, i) => {
-          const a = (-135 + (i / 9) * 270) * (Math.PI / 180), r1 = 72, r2 = 82;
-          return <line key={i}
-            x1={100 + r1 * Math.cos(a)} y1={100 + r1 * Math.sin(a)}
-            x2={100 + r2 * Math.cos(a)} y2={100 + r2 * Math.sin(a)}
-            className="wtk__dialTick" />;
+          const a = (-135 + (i / 9) * 270) * (Math.PI / 180);
+          const r1 = 72;
+          const r2 = 82;
+          return (
+            <line
+              key={i}
+              x1={100 + r1 * Math.cos(a)}
+              y1={100 + r1 * Math.sin(a)}
+              x2={100 + r2 * Math.cos(a)}
+              y2={100 + r2 * Math.sin(a)}
+              className="wtk__dialTick"
+            />
+          );
         })}
         <g transform={`rotate(${angle} 100 100)`}>
           <line x1="100" y1="100" x2="165" y2="100" className="wtk__dialNeedle" />
           <circle cx="100" cy="100" r="4" className="wtk__dialHub" />
         </g>
-        <text x="100" y="96" textAnchor="middle" className="wtk__dialVal">{display}</text>
-        <text x="100" y="116" textAnchor="middle" className="wtk__dialUnit">kg</text>
+        <text x="100" y="96" textAnchor="middle" className="wtk__dialVal">
+          {display}
+        </text>
+        <text x="100" y="116" textAnchor="middle" className="wtk__dialUnit">
+          kg
+        </text>
       </svg>
     </div>
   );
@@ -389,11 +468,17 @@ function DialArc({ valueRatio }: { valueRatio: number }) {
   return <path d={`M ${start.x} ${start.y} A 84 84 0 ${largeArc} 1 ${end.x} ${end.y}`} className="wtk__dialArc" />;
 }
 
+/* ---------------- Sparkline ---------------- */
+
 function Sparkline({ entries, units }: { entries: WeightEntry[]; units: Units }) {
-  const w = 320, h = 56, pad = 4;
+  const w = 320,
+    h = 56,
+    pad = 4;
   if (!entries.length) return <div className="wtk__empty">No data yet</div>;
   const ys = entries.map((e) => e.kg);
-  const min = Math.min(...ys), max = Math.max(...ys), span = max - min || 1;
+  const min = Math.min(...ys),
+    max = Math.max(...ys),
+    span = max - min || 1;
   const pts = entries.map((e, i) => {
     const x = pad + (i / Math.max(entries.length - 1, 1)) * (w - pad * 2);
     const y = pad + (1 - (e.kg - min) / span) * (h - pad * 2);
@@ -420,10 +505,26 @@ function Sparkline({ entries, units }: { entries: WeightEntry[]; units: Units })
 
 /* ---------------- Utils ---------------- */
 
-function toLocalISO(d: Date) { const off = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - off).toISOString().slice(0, 10); }
-function kgToLb(kg: number) { return kg * 2.2046226218; }
-function lbToKg(lb: number) { return lb / 2.2046226218; }
-function clamp(v: number, min: number, max: number) { return Math.min(max, Math.max(min, v)); }
-function round1(v: number) { return Math.round(v * 10) / 10; }
-function format1(v: number) { return round1(v).toFixed(1); }
-function polar(cx: number, cy: number, r: number, deg: number) { const a = (deg * Math.PI) / 180; return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; }
+function toLocalISO(d: Date) {
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 10);
+}
+function kgToLb(kg: number) {
+  return kg * 2.2046226218;
+}
+function lbToKg(lb: number) {
+  return lb / 2.2046226218;
+}
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v));
+}
+function round1(v: number) {
+  return Math.round(v * 10) / 10;
+}
+function format1(v: number) {
+  return round1(v).toFixed(1);
+}
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const a = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+}

@@ -1,4 +1,4 @@
-// src/sections/HabitsSection.tsx — drop-in rewrite
+// src/sections/HabitsSection.tsx — header minus, row select, confirm delete
 import React, { useMemo, useState } from "react";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
@@ -18,8 +18,7 @@ import {
 
 type Habit = { id: string; name: string };
 
-const PILL = 24; // smaller toggles
-const DEL_W = 32; // delete button column width
+const PILL = 24;
 
 export default function HabitsSection() {
   const tick = useHabits();
@@ -43,34 +42,26 @@ export default function HabitsSection() {
 
   const [compose, setCompose] = useState(false);
   const [draft, setDraft] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // feature-detect store actions
+  // --- store action adapters ---
   const addHabit = (name: string) => {
-    // @ts-ignore
-    if (typeof (imported as any)?.add === "function") return (imported as any).add(name);
     // @ts-ignore
     const s = (useHabits as any).getState?.();
     const fn = s?.add ?? s?.addHabit ?? s?.create ?? s?.createHabit;
     if (typeof fn === "function") return fn(name);
-    console.warn("No add habit action available");
   };
   const renameHabit = (id: string, name: string) => {
-    // @ts-ignore
-    if (typeof (imported as any)?.rename === "function") return (imported as any).rename(id, name);
     // @ts-ignore
     const s = (useHabits as any).getState?.();
     const fn = s?.rename ?? s?.renameHabit ?? s?.updateName ?? s?.update;
     if (typeof fn === "function") return fn(id, name);
-    console.warn("No rename habit action available");
   };
   const removeHabit = (id: string) => {
-    // @ts-ignore
-    if (typeof (imported as any)?.remove === "function") return (imported as any).remove(id);
     // @ts-ignore
     const s = (useHabits as any).getState?.();
     const fn = s?.remove ?? s?.delete ?? s?.deleteHabit ?? s?.removeHabit;
     if (typeof fn === "function") return fn(id);
-    console.warn("No remove habit action available");
   };
 
   function onAdd() {
@@ -79,6 +70,15 @@ export default function HabitsSection() {
     addHabit(name);
     setDraft("");
     setCompose(false);
+  }
+
+  function onDeleteSelected() {
+    if (!selectedId) return;
+    const h = habits.find((x: Habit) => x.id === selectedId);
+    const ok = window.confirm(`Delete habit “${h?.name ?? "Untitled"}”?`);
+    if (!ok) return;
+    removeHabit(selectedId);
+    setSelectedId(null);
   }
 
   return (
@@ -95,12 +95,13 @@ export default function HabitsSection() {
       <div
         style={{
           display: "flex",
-          alignItems: "baseline",
+          alignItems: "center",
           justifyContent: "space-between",
           marginBottom: 8,
+          gap: 8,
         }}
       >
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0, fontWeight: 800 }}>HABITS</h3>
           <div style={{ fontSize: 12, color: "#64748b" }}>
             Week of{" "}
@@ -110,7 +111,37 @@ export default function HabitsSection() {
             })}
           </div>
         </div>
-        <AddButton aria-label="Add habit" onClick={() => setCompose((v) => !v)} />
+
+        <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          {/* Global minus LEFT of green + */}
+          <button
+            type="button"
+            onClick={onDeleteSelected}
+            disabled={!selectedId}
+            title={
+              selectedId ? "Delete selected habit" : "Select a habit to delete"
+            }
+            aria-label="Delete selected habit"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 999,
+              border: "1px solid #fecaca",
+              background: "#fee2e2",
+              color: "#b91c1c",
+              fontWeight: 900,
+              cursor: selectedId ? "pointer" : "not-allowed",
+              opacity: selectedId ? 1 : 0.6,
+            }}
+          >
+            –
+          </button>
+
+          <AddButton
+            aria-label="Add habit"
+            onClick={() => setCompose((v) => !v)}
+          />
+        </div>
       </div>
 
       {/* Add box */}
@@ -157,18 +188,17 @@ export default function HabitsSection() {
         </div>
       )}
 
-      {/* Weekday header row — keep a delete column placeholder so columns align */}
+      {/* Weekday header */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `auto ${DEL_W}px repeat(7, ${PILL}px)`,
+          gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
           gap: 8,
           alignItems: "center",
           marginBottom: 6,
         }}
       >
         <div />
-        <div aria-hidden style={{ width: DEL_W }} />
         {days.map((d) => (
           <div
             key={d}
@@ -192,56 +222,44 @@ export default function HabitsSection() {
         ))}
       </div>
 
-      {/* Habit rows */}
+      {/* Habit rows (click to select) */}
       <div style={{ display: "grid", gap: 6 }}>
         {habits.map((h: Habit) => {
           const log = getWeekLog(h.id, weekStart);
+          const selected = selectedId === h.id;
           return (
             <div
               key={h.id}
+              onClick={() => setSelectedId(h.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setSelectedId(h.id);
+              }}
               style={{
                 display: "grid",
-                gridTemplateColumns: `auto ${DEL_W}px repeat(7, ${PILL}px)`,
+                gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
                 gap: 8,
                 alignItems: "center",
+                padding: 6,
+                borderRadius: 10,
+                border: selected ? "2px solid #94a3b8" : "1px solid #e5e7eb",
+                background: selected ? "#f1f5f9" : "transparent",
+                cursor: "pointer",
               }}
             >
-              {/* name with inline rename */}
               <InlineEditable
                 value={h.name}
                 onCommit={(v) => renameHabit(h.id, v)}
                 ariaLabel={`Rename ${h.name}`}
               />
-
-              {/* round minus = remove habit */}
-              <button
-                type="button"
-                onClick={() => removeHabit(h.id)}
-                aria-label={`Remove ${h.name}`}
-                title="Remove habit"
-                style={{
-                  width: DEL_W,
-                  height: DEL_W,
-                  borderRadius: 999,
-                  border: "1px solid #fecaca",
-                  background: "#fee2e2",
-                  color: "#b91c1c",
-                  fontWeight: 800,
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: "pointer",
-                }}
-              >
-                –
-              </button>
-
-              {/* seven toggles perfectly under weekday letters */}
               {log.map((v, i) => {
                 const dayStart = days[i];
                 const isFuture = dayStart > todayStart;
                 return (
                   <div
                     key={i}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       width: PILL,
                       height: PILL,
@@ -250,7 +268,9 @@ export default function HabitsSection() {
                     }}
                   >
                     <ToggleButton
-                      ariaLabel={`Toggle ${h.name} for ${new Date(dayStart).toDateString()}`}
+                      ariaLabel={`Toggle ${h.name} for ${new Date(
+                        dayStart
+                      ).toDateString()}`}
                       value={!!v}
                       disabled={isFuture}
                       className="ui-HabitToggle"
@@ -322,13 +342,15 @@ function InlineEditable({
         borderRadius: 8,
         outline: "none",
         fontSize: 14,
+        background: "#fff",
       }}
       autoFocus
     />
   ) : (
     <button
       type="button"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         setText(value);
         setEditing(true);
       }}
@@ -348,11 +370,3 @@ function InlineEditable({
     </button>
   );
 }
-
-// optional named exports shape for feature-detect
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const imported = null as unknown as {
-  add?: (name: string) => void;
-  rename?: (id: string, name: string) => void;
-  remove?: (id: string) => void;
-};
