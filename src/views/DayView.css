@@ -1,8 +1,15 @@
-/* DayView • spacing + banner */
+/* DayView • spacing + banner • Montserrat everywhere */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap");
+
 :root{
   --dayview-gap:40px;
   --day-banner-bg:#f3f4f6;
   --day-banner-br:14px;
+}
+
+/* Global font */
+html, body, button, input, textarea, select, * {
+  font-family: "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif !important;
 }
 
 /* Primary spacing */

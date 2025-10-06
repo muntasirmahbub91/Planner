@@ -1,4 +1,4 @@
-// src/sections/TasksSection.tsx
+// src/sections/TasksSection.tsx — outlined card, full logic kept
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
 import { useTasks } from "@/stores/tasksStore";
@@ -6,11 +6,10 @@ import type { Task } from "@/domain/types";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
 import Modal from "@/components/Modal";
-
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
-/* date helpers: no native <input type="date"> anywhere */
+/* date helpers */
 function toYmdFromMs(ms: number) {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -30,13 +29,13 @@ export default function TasksSection() {
   const startMs = dayMs(selectedEpochDay);
   const endMs = startMs + DAY_MS;
 
-  /* store slices */
+  // store slices
   const byId = useTasks((s) => s.byId);
   const order = useTasks((s) => s.order);
   const addTask = useTasks((s) => s.add);
   const updateTask = useTasks((s) => s.update);
 
-  /* derive for the selected day */
+  // derive for selected day
   const items: Task[] = useMemo(
     () =>
       order
@@ -54,17 +53,17 @@ export default function TasksSection() {
     };
   }, [items]);
 
-  /* modal state */
+  // modal state
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [dateVal, setDateVal] = useState<string>(toYmdFromMs(startMs)); // YYYY-MM-DD
+  const [dateVal, setDateVal] = useState<string>(toYmdFromMs(startMs));
   const [urgent, setUrgent] = useState(false);
   const [important, setImportant] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
 
-  /* open/close */
+  // open/close
   const openModal = useCallback(() => {
     setTitle("");
     setUrgent(false);
@@ -79,7 +78,7 @@ export default function TasksSection() {
     setError(null);
   }, []);
 
-  /* commit add */
+  // commit add
   const commitAdd = useCallback(() => {
     const text = title.trim();
     if (!text) return;
@@ -98,20 +97,34 @@ export default function TasksSection() {
     }
   }, [title, dateVal, urgent, important, addTask, active.length]);
 
-  /* focus title */
+  // focus title
   useEffect(() => {
     if (open) queueMicrotask(() => titleRef.current?.focus());
   }, [open]);
 
-  /* keep date synced with selected day */
+  // keep date synced with selected day
   useEffect(() => {
     setDateVal(toYmdFromMs(startMs));
   }, [startMs]);
 
   return (
-    <section>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "12px 0 8px" }}>
-        <h3 style={{ margin: 0, textTransform: "uppercase", marginTop: 40 }}>TASKS</h3>
+    <section
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 16,
+        background: "#fcf7d5ff",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          margin: "4px 0 12px",
+        }}
+      >
+        <h3 style={{ margin: 0, textTransform: "uppercase" }}>TASKS</h3>
         <AddButton aria-label="Add task" onClick={openModal} title="Add task" />
       </div>
 
@@ -121,7 +134,8 @@ export default function TasksSection() {
         <div style={{ display: "grid", gap: 8 }}>
           {active.map((t) => {
             const done = !!t.done;
-            const toggle = () => updateTask(t.id, { done: !done, completedAt: !done ? Date.now() : undefined });
+            const toggle = () =>
+              updateTask(t.id, { done: !done, completedAt: !done ? Date.now() : undefined });
             const clear = () => updateTask(t.id, { dueMs: null });
             return (
               <div
@@ -132,17 +146,31 @@ export default function TasksSection() {
                   gap: 8,
                   alignItems: "center",
                   border: "1px solid #e5e7eb",
-                  background: "#fff",
+                  background: "#f4d9b4ff",
                   borderRadius: 12,
                   padding: "8px 10px",
                 }}
               >
                 <ToggleButton checked={done} onChange={toggle} />
                 <div>
-                  <div style={{ fontWeight: 600, textDecoration: done ? "line-through" : "none" }}>{t.title}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>{t.urgent ? "🔥" : ""}{t.important ? "⭐" : ""}</div>
+                  <div style={{ fontWeight: 600, textDecoration: done ? "line-through" : "none" }}>
+                    {t.title}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {t.urgent ? "🔥" : ""}
+                    {t.important ? "⭐" : ""}
+                  </div>
                 </div>
-                <button onClick={clear} style={{ border: "1px solid #ddd", background: "#fff", borderRadius: 8, padding: "4px 8px" }}>
+                <button
+                  onClick={clear}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    background: "#fff",
+                    borderRadius: 8,
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                  }}
+                >
                   Clear date
                 </button>
               </div>
@@ -202,7 +230,12 @@ export default function TasksSection() {
               placeholder="Task title…"
               aria-label="Task title"
               maxLength={50}
-              style={{ flex: "1 1 100%", padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 10 }}
+              style={{
+                flex: "1 1 100%",
+                padding: "10px 12px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+              }}
             />
             <button
               type="button"
@@ -240,7 +273,7 @@ export default function TasksSection() {
             </button>
           </div>
 
-          {/* INLINE calendar inside modal. No popover. No native input. */}
+          {/* Inline calendar */}
           <div
             style={{
               border: "1px solid #e5e7eb",
@@ -256,12 +289,10 @@ export default function TasksSection() {
               selected={new Date(dateVal)}
               onSelect={(d) => {
                 if (!d) return;
-                setDateVal(toYmd(d)); // keep YYYY-MM-DD for commitAdd
+                setDateVal(toYmd(d));
               }}
             />
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-              Selected: {dateVal}
-            </div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>Selected: {dateVal}</div>
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
@@ -284,7 +315,7 @@ export default function TasksSection() {
               onClick={closeModal}
               style={{
                 border: "1px solid #e5e7eb",
-                background: "#fff",
+                background: "#ab7171ff",
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontWeight: 700,

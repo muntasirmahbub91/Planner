@@ -1,3 +1,4 @@
+// src/sections/DayView.tsx — date big, weekday small, no “Today” link
 import React from "react";
 import { useDateStore, dayMs, DAY_MS } from "@/stores/dateStore";
 import TasksSection from "@/sections/TasksSection";
@@ -18,17 +19,18 @@ function goNextDay() {
   s.setMs(cur + DAY_MS);
 }
 
+// Title = full date; Subtitle = weekday
 function fmtDayTitle(eDay: number) {
-  const d = new Date(dayMs(eDay));
-  return d.toLocaleDateString(undefined, { weekday: "long" });
-}
-function fmtDaySubtitle(eDay: number) {
   const d = new Date(dayMs(eDay));
   return d.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+}
+function fmtDaySubtitle(eDay: number) {
+  const d = new Date(dayMs(eDay));
+  return d.toLocaleDateString(undefined, { weekday: "long" });
 }
 function toLocalISO(d: Date) {
   const tzOff = d.getTimezoneOffset() * 60000;
@@ -37,10 +39,9 @@ function toLocalISO(d: Date) {
 
 export default function DayView() {
   const eDay = useDateStore((s) => s.selected);
-  const setTodaySelected = useDateStore((s) => s.setTodaySelected);
 
-  const title = React.useMemo(() => fmtDayTitle(eDay), [eDay]);
-  const subtitle = React.useMemo(() => fmtDaySubtitle(eDay), [eDay]);
+  const title = React.useMemo(() => fmtDayTitle(eDay), [eDay]);       // big date
+  const subtitle = React.useMemo(() => fmtDaySubtitle(eDay), [eDay]); // small weekday
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,11 +49,10 @@ export default function DayView() {
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any)?.isContentEditable)) return;
       if (e.key === "ArrowLeft") { e.preventDefault(); goPrevDay(); }
       if (e.key === "ArrowRight") { e.preventDefault(); goNextDay(); }
-      if (e.key === "Home") { e.preventDefault(); setTodaySelected(); }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [setTodaySelected]);
+  }, []);
 
   const dateISO = toLocalISO(new Date(dayMs(eDay)));
 
@@ -61,26 +61,44 @@ export default function DayView() {
       {/* Banner */}
       <section
         className="DateBanner DateBanner--day"
-        style={{ display: "grid", gridTemplateColumns: "32px 1fr 32px", alignItems: "center", gap: 8, padding: "12px 12px", minHeight: 64 }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "32px 1fr 32px",
+          alignItems: "center",
+          gap: 8,
+          padding: "12px 12px",
+          minHeight: 64,
+        }}
         aria-label="Day navigation"
       >
-        <button type="button" aria-label="Previous day" className="DateBanner__chev" onClick={goPrevDay}>‹</button>
-        <div className="DateBanner__titles" style={{ display: "grid", alignContent: "center", justifyItems: "center", textAlign: "center" }}>
-          <div className="DateBanner__title" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }} aria-live="polite">{title}</div>
-          <div className="DateBanner__subtitle" style={{ opacity: 0.7, fontSize: 14, lineHeight: 1.2, margin: 0, marginTop: 2 }}>
-            {subtitle} ·{" "}
-            <button
-              type="button"
-              onClick={setTodaySelected}
-              className="DateBanner__todayBtn"
-              aria-label="Jump to today"
-              style={{ border: 0, background: "transparent", textDecoration: "underline", cursor: "pointer", padding: 0 }}
-            >
-              Today
-            </button>
+        <button type="button" aria-label="Previous day" className="DateBanner__chev" onClick={goPrevDay}>
+          ‹
+        </button>
+
+        <div
+          className="DateBanner__titles"
+          style={{ display: "grid", alignContent: "center", justifyItems: "center", textAlign: "center" }}
+        >
+          {/* Bigger DATE */}
+          <div
+            className="DateBanner__title"
+            style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2, margin: 0 }}
+            aria-live="polite"
+          >
+            {title}
+          </div>
+          {/* Smaller WEEKDAY */}
+          <div
+            className="DateBanner__subtitle"
+            style={{ opacity: 0.85, fontSize: 18, fontWeight: 600, lineHeight: 1.2, margin: 0, marginTop: 4 }}
+          >
+            {subtitle}
           </div>
         </div>
-        <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={goNextDay}>›</button>
+
+        <button type="button" aria-label="Next day" className="DateBanner__chev" onClick={goNextDay}>
+          ›
+        </button>
       </section>
 
       {/* Content */}

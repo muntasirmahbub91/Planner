@@ -1,4 +1,4 @@
-// src/sections/HabitsSection.tsx — header minus, row select, confirm delete
+// src/sections/HabitsSection.tsx — unified grid, fixed name column, compact multiline editor (no outline)
 import React, { useMemo, useState } from "react";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
@@ -18,7 +18,8 @@ import {
 
 type Habit = { id: string; name: string };
 
-const PILL = 24;
+const CELL = 24;      // toggle pill size
+const NAME_W = 180;   // fixed name column width
 
 export default function HabitsSection() {
   const tick = useHabits();
@@ -44,7 +45,7 @@ export default function HabitsSection() {
   const [draft, setDraft] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // --- store action adapters ---
+  // store adapters
   const addHabit = (name: string) => {
     // @ts-ignore
     const s = (useHabits as any).getState?.();
@@ -71,14 +72,13 @@ export default function HabitsSection() {
     setDraft("");
     setCompose(false);
   }
-
   function onDeleteSelected() {
     if (!selectedId) return;
     const h = habits.find((x: Habit) => x.id === selectedId);
-    const ok = window.confirm(`Delete habit “${h?.name ?? "Untitled"}”?`);
-    if (!ok) return;
-    removeHabit(selectedId);
-    setSelectedId(null);
+    if (window.confirm(`Delete habit “${h?.name ?? "Untitled"}”?`)) {
+      removeHabit(selectedId);
+      setSelectedId(null);
+    }
   }
 
   return (
@@ -111,40 +111,34 @@ export default function HabitsSection() {
             })}
           </div>
         </div>
-
         <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          {/* Global minus LEFT of green + */}
           <button
             type="button"
             onClick={onDeleteSelected}
             disabled={!selectedId}
-            title={
-              selectedId ? "Delete selected habit" : "Select a habit to delete"
-            }
+            title={selectedId ? "Delete selected habit" : "Select a habit to delete"}
             aria-label="Delete selected habit"
             style={{
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               borderRadius: 999,
               border: "1px solid #fecaca",
               background: "#fee2e2",
               color: "#b91c1c",
               fontWeight: 900,
+              fontSize: 18,
+              lineHeight: 1,
               cursor: selectedId ? "pointer" : "not-allowed",
               opacity: selectedId ? 1 : 0.6,
             }}
           >
             –
           </button>
-
-          <AddButton
-            aria-label="Add habit"
-            onClick={() => setCompose((v) => !v)}
-          />
+          <AddButton aria-label="Add habit" onClick={() => setCompose((v) => !v)} />
         </div>
       </div>
 
-      {/* Add box */}
+      {/* Composer */}
       {compose && (
         <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           <input
@@ -167,6 +161,7 @@ export default function HabitsSection() {
               borderRadius: 8,
               outline: "none",
               fontSize: 14,
+              background: "#fff",
             }}
             maxLength={60}
             autoFocus
@@ -188,122 +183,122 @@ export default function HabitsSection() {
         </div>
       )}
 
-      {/* Weekday header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
-          gap: 8,
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
-        <div />
-        {days.map((d) => (
-          <div
-            key={d}
-            style={{
-              width: PILL,
-              height: PILL,
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 700,
-              fontSize: 11,
-              borderRadius: 999,
-              background: "#fff",
-              border: "1px solid #e5e7eb",
-              opacity: d > todayStart ? 0.4 : 1,
-            }}
-            aria-hidden
-            title={new Date(d).toDateString()}
-          >
-            {"SMTWTFS"[new Date(d).getDay()]}
+      {/* Unified grid: header row + aligned rows */}
+      <div style={{ overflowX: "auto", padding: "0 6px" }}>
+        <div
+          role="grid"
+          aria-rowcount={habits.length + 1}
+          aria-colcount={8}
+          style={{
+            display: "grid",
+            gridTemplateColumns: `${NAME_W}px repeat(7, ${CELL}px)`,
+            rowGap: 8,
+          }}
+        >
+          {/* Header row */}
+          <div role="row" style={{ display: "contents" }}>
+            <div role="columnheader" />
+            {days.map((d) => {
+              const disabled = d > todayStart;
+              return (
+                <div
+                  key={d}
+                  role="columnheader"
+                  title={new Date(d).toDateString()}
+                  style={{
+                    width: CELL,
+                    height: CELL,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 999,
+                    background: "#fff",
+                    border: "1px solid #e5e7eb",
+                    opacity: disabled ? 0.4 : 1,
+                    fontWeight: 700,
+                    fontSize: 11,
+                  }}
+                >
+                  {"SMTWTFS"[new Date(d).getDay()]}
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
 
-      {/* Habit rows (click to select) */}
-      <div style={{ display: "grid", gap: 6 }}>
-        {habits.map((h: Habit) => {
-          const log = getWeekLog(h.id, weekStart);
-          const selected = selectedId === h.id;
-          return (
-            <div
-              key={h.id}
-              onClick={() => setSelectedId(h.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setSelectedId(h.id);
-              }}
-              style={{
-                display: "grid",
-                gridTemplateColumns: `auto repeat(7, ${PILL}px)`,
-                gap: 8,
-                alignItems: "center",
-                padding: 6,
-                borderRadius: 10,
-                border: selected ? "2px solid #94a3b8" : "1px solid #e5e7eb",
-                background: selected ? "#f1f5f9" : "transparent",
-                cursor: "pointer",
-              }}
-            >
-              <InlineEditable
-                value={h.name}
-                onCommit={(v) => renameHabit(h.id, v)}
-                ariaLabel={`Rename ${h.name}`}
-              />
-              {log.map((v, i) => {
-                const dayStart = days[i];
-                const isFuture = dayStart > todayStart;
-                return (
-                  <div
-                    key={i}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      width: PILL,
-                      height: PILL,
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    <ToggleButton
-                      ariaLabel={`Toggle ${h.name} for ${new Date(
-                        dayStart
-                      ).toDateString()}`}
-                      value={!!v}
-                      disabled={isFuture}
-                      className="ui-HabitToggle"
-                      onChange={() => {
-                        if (!isFuture) toggleDay(h.id, weekStart, i);
+          {/* Data rows */}
+          {habits.map((h: Habit) => {
+            const log = getWeekLog(h.id, weekStart);
+            const selected = selectedId === h.id;
+            return (
+              <div key={h.id} role="row" style={{ display: "contents" }}>
+                {/* Name cell — confined to NAME_W */}
+                <div
+                  role="rowheader"
+                  onClick={() => setSelectedId(h.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") setSelectedId(h.id);
+                  }}
+                  tabIndex={0}
+                  style={{
+                    width: NAME_W,
+                    minWidth: 0,
+                    padding: "6px 8px",
+                    borderRadius: 10,
+                    border: selected ? "2px solid #94a3b8" : "1px solid #e5e7eb",
+                    background: selected ? "#f1f5f9" : "#ffffff",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                  }}
+                  title={h.name}
+                >
+                  <InlineEditable
+                    value={h.name}
+                    onCommit={(v) => renameHabit(h.id, v)}
+                    ariaLabel={`Rename ${h.name}`}
+                  />
+                </div>
+
+                {/* Seven aligned toggle cells */}
+                {log.map((v, i) => {
+                  const dayStart = days[i];
+                  const isFuture = dayStart > todayStart;
+                  return (
+                    <div
+                      key={i}
+                      role="gridcell"
+                      style={{
+                        width: CELL,
+                        height: CELL,
+                        display: "grid",
+                        placeItems: "center",
                       }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-
-        {habits.length === 0 && (
-          <div
-            style={{
-              padding: 8,
-              color: "#64748b",
-              fontStyle: "italic",
-              textAlign: "center",
-              fontSize: 14,
-            }}
-          >
-            No habits yet. Click + to add one.
-          </div>
-        )}
+                    >
+                      <ToggleButton
+                        ariaLabel={`Toggle ${h.name} for ${new Date(
+                          dayStart
+                        ).toDateString()}`}
+                        value={!!v}
+                        disabled={isFuture}
+                        onChange={() => {
+                          if (!isFuture) toggleDay(h.id, weekStart, i);
+                        }}
+                        sizePx={CELL}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-/* Inline rename control */
+/* Inline rename control — compact, borderless textarea that wraps to a second line */
 function InlineEditable({
   value,
   onCommit,
@@ -317,7 +312,7 @@ function InlineEditable({
   const [text, setText] = useState(value);
 
   return editing ? (
-    <input
+    <textarea
       value={text}
       onChange={(e) => setText(e.target.value)}
       onBlur={() => {
@@ -325,7 +320,8 @@ function InlineEditable({
         onCommit(text.trim() || value);
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
           setEditing(false);
           onCommit(text.trim() || value);
         }
@@ -335,14 +331,22 @@ function InlineEditable({
         }
       }}
       aria-label={ariaLabel}
+      rows={2}
       style={{
-        height: 32,
-        padding: "0 8px",
-        border: "1px solid #cbd5e1",
+        width: "140px",         // compact editor width
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        padding: "6px 8px",
+        border: "0",            // no visible outline/border
+        outline: "0",
+        boxShadow: "none",
         borderRadius: 8,
-        outline: "none",
+        background: "transparent",
         fontSize: 14,
-        background: "#fff",
+        lineHeight: 1.25,
+        resize: "none",
+        overflow: "hidden",
+        color: "inherit",
       }}
       autoFocus
     />
@@ -358,10 +362,11 @@ function InlineEditable({
         textAlign: "left",
         background: "transparent",
         border: "none",
-        padding: "4px 6px",
+        padding: "4px 0",
         fontWeight: 600,
         fontSize: 14,
         cursor: "text",
+        width: "100%",
       }}
       aria-label={ariaLabel}
       title="Rename"
