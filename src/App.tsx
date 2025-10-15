@@ -1,3 +1,4 @@
+// src/App.tsx — add MonthlyProgress at top right
 import "@/styles/task-composer-layout.css";
 import "@/styles/task-composer-compact.css";
 import React from "react";
@@ -14,7 +15,9 @@ import TasksView from "@/views/TasksView";
 import ProjectsView from "@/views/ProjectsView";
 import RemindersView from "@/views/RemindersView";
 import JournalView from "@/views/JournalView";
-import ListView from "@/views/ListsView"; // NEW
+import ListView from "@/views/ListsView";
+
+import MonthlyProgress from "@/sections/MonthlyProgress"; // NEW
 
 /** Calendar slot switches among Day/Week/Month/Year */
 function CalendarSlot({ view }: { view: View }) {
@@ -37,7 +40,7 @@ function SecondarySlot({ mode }: { mode: string }) {
   if (mode === "projects") return <ProjectsView />;
   if (mode === "reminders") return <RemindersView />;
   if (mode === "journal") return <JournalView />;
-  if (mode === "lists") return <ListView />; // NEW
+  if (mode === "lists") return <ListView />;
   return null;
 }
 
@@ -54,6 +57,14 @@ export default function App() {
             <h1 className="brand-title" data-app-title>
               PLANNER
             </h1>
+
+            {/* Monthly progress on the right — keep scale and shift 50px left */}
+<div className="topBar-actions" aria-label="Month progress" style={{ width: 230 }}>
+  <div style={{ transform: "scale(0.7)", transformOrigin: "right center" }}>
+    <MonthlyProgress width={180} height={44} offsetX={-50} />
+  </div>
+</div>
+
 
             {/* Row 2 */}
             <nav className="topBar-nav" aria-label="Calendar views">
@@ -77,11 +88,7 @@ export default function App() {
 
         <main className="viewSlot" role="main">
           <div className="band">
-            {mode === "none" ? (
-              <CalendarSlot view={view} />
-            ) : (
-              <SecondarySlot mode={mode} />
-            )}
+            {mode === "none" ? <CalendarSlot view={view} /> : <SecondarySlot mode={mode} />}
           </div>
         </main>
 
@@ -92,7 +99,7 @@ export default function App() {
               ["projects", "PROJECTS"],
               ["reminders", "REMINDERS"],
               ["journal", "JOURNAL"],
-              ["lists", "LISTS"], // NEW fifth button
+              ["lists", "LISTS"],
             ] as const).map(([id, label]) => (
               <button
                 key={id}
