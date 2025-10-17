@@ -1,177 +1,158 @@
 // src/stores/weeklyGoals.ts
 import { create } from "zustand";
-import { WEEK_START_DOW, weekStartMs } from "@/stores/dateStore";
-import { normalizeState, toggleBinary } from "@/stores/weeklyGoalStates";
-import type { WeeklyGoalState } from "@/stores/weeklyGoalStates";
 
-/* =======================
-   Types
-   ======================= */
-export type WeekKey = number; // local-midnight ms at week start
+/* ---------- Types ---------- */
+export type GoalStatus = "planned" | "done";
 
-export type WeeklyGoalsForWeek = {
-  weekStartMs: WeekKey;
-  /** Arbitrary goal key -> state */
-  goals: Record<string, WeeklyGoalState>;
-};
+export interface WeekGoals {
+  goals: Record<string, GoalStatus>; // key = goal text
+}
 
-type State = {
-  byWeek: Record<WeekKey, WeeklyGoalsForWeek>;
-  version: number; // bump to notify subscribers
-  // actions
-  setGoal: (weekAnchorMs: number, key: string, state: WeeklyGoalState | boolean | string | number) => void;
-  toggleGoal: (weekAnchorMs: number, key: string) => void;
-  clearGoal: (weekAnchorMs: number, key: string) => void;
-  clearWeek: (weekAnchorMs: number) => void;
-  hydrate: (data: Partial<Pick<State, "byWeek">>) => void;
-};
+interface WeeklyGoalsState {
+  weeks: Record<number, WeekGoals>; // key = weekStart (ms)
+  setGoal: (weekStart: number, goal: string, status?: GoalStatus) => void;
+  toggleGoal: (weekStart: number, goal: string) => void;
+  clearGoal: (weekStart: number, goal: string) => void;
+  moveGoal: (fromWeek: number, toWeek: number, goal: string) => boolean;
+  _hydrate: (data: Partial<Pick<WeeklyGoalsState, "weeks">>) => void;
+}
 
-/* =======================
-   Persistence
-   ======================= */
-const STORAGE_KEY = "weeklyGoalsStore.v1";
+/* ---------- Persistence ---------- */
+const LS_KEY = "weeklyGoals.v1";
 
-function readStorage(): Partial<Pick<State, "byWeek">> {
+function loadInitial(): Record<number, WeekGoals> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(LS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    const src: any = parsed.byWeek || parsed.weeks || {};
-    const byWeek: Record<WeekKey, WeeklyGoalsForWeek> = {};
-
-    for (const k of Object.keys(src)) {
-      const wkAny = src[k];
-      const wkMs = normalizeWeekStartKey(k);
-      const goals: Record<string, WeeklyGoalState> = {};
-      const g = wkAny?.goals || wkAny || {};
-      if (g && typeof g === "object") {
-        for (const goalKey of Object.keys(g)) {
-          goals[goalKey] = normalizeState(g[goalKey]);
-        }
-      }
-      byWeek[wkMs] = { weekStartMs: wkMs, goals };
-    }
-    return { byWeek };
+    if (parsed && typeof parsed === "object" && parsed.weeks) return parsed.weeks as Record<number, WeekGoals>;
+    if (parsed && typeof parsed === "object") return parsed as Record<number, WeekGoals>;
+    return {};
   } catch {
     return {};
   }
 }
 
-function writeStorage(get: () => State) {
+function save(state: WeeklyGoalsState) {
   try {
-    const { byWeek } = get();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ byWeek }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ weeks: state.weeks }));
   } catch {
-    // ignore quota/SSR
+    // ignore quota or private mode
   }
 }
 
-/* =======================
-   Helpers
-   ======================= */
-function normalizeWeekStartKey(k: string | number): WeekKey {
-  const n = typeof k === "number" ? k : Number(k);
-  const ms = Number.isFinite(n) ? n : Date.now();
-  // Align to configured week start to avoid anchor drift
-  return weekStartMs(ms, WEEK_START_DOW);
+/* ---------- Store ---------- */
+export const useWeeklyGoals = create<WeeklyGoalsState>((set, get) => ({
+  weeks: loadInitial(),
+
+  setGoal: (weekStart, goal, status = "planned") => {
+    if (!goal.trim()) return;
+    set((s) => {
+      const w = ensureWeek(s.weeks, weekStart);
+      w.goals[goal] = status;
+      const next = { ...s, weeks: { ...s.weeks, [weekStart]: { goals: { ...w.goals } } } };
+      save(next);
+      return next;
+    });
+  },
+
+  toggleGoal: (weekStart, goal) => {
+    set((s) => {
+      const w = ensureWeek(s.weeks, weekStart);
+      const cur = w.goals[goal];
+      if (!cur) return s;
+      w.goals[goal] = cur === "done" ? "planned" : "done";
+      const next = { ...s, weeks: { ...s.weeks, [weekStart]: { goals: { ...w.goals } } } };
+      save(next);
+      return next;
+    });
+  },
+
+  clearGoal: (weekStart, goal) => {
+    set((s) => {
+      const w = ensureWeek(s.weeks, weekStart);
+      if (!w.goals[goal]) return s;
+      const { [goal]: _, ...rest } = w.goals;
+      const next = { ...s, weeks: { ...s.weeks, [weekStart]: { goals: rest } } };
+      save(next);
+      return next;
+    });
+  },
+
+  moveGoal: (fromWeek, toWeek, goal) => {
+    if (fromWeek === toWeek) return false;
+    const s = get();
+    const src = ensureWeek(s.weeks, fromWeek);
+    const dst = ensureWeek(s.weeks, toWeek);
+    const status = src.goals[goal];
+    if (!status) return false;
+    // capacity guard: allow max 3 in target
+    if (Object.keys(dst.goals).length >= 3) return false;
+
+    // mutate via set to ensure subscribers fire and persistence runs
+    set((st) => {
+      const srcW = ensureWeek(st.weeks, fromWeek);
+      const dstW = ensureWeek(st.weeks, toWeek);
+
+      // add to target
+      dstW.goals[goal] = status;
+      // remove from source
+      const { [goal]: __, ...srcRest } = srcW.goals;
+
+      const nextWeeks = {
+        ...st.weeks,
+        [fromWeek]: { goals: srcRest },
+        [toWeek]: { goals: { ...dstW.goals } },
+      };
+      const next = { ...st, weeks: nextWeeks };
+      save(next);
+      return next;
+    });
+
+    return true;
+  },
+
+  _hydrate: (data) =>
+    set((s) => {
+      const next = { ...s, ...data, weeks: { ...s.weeks, ...(data.weeks || {}) } };
+      save(next);
+      return next;
+    }),
+}));
+
+/* ---------- Helpers (non-hook API) ---------- */
+function ensureWeek(weeks: Record<number, WeekGoals>, weekStart: number): WeekGoals {
+  if (!weeks[weekStart]) weeks[weekStart] = { goals: {} };
+  return weeks[weekStart];
 }
 
-function commit(set: any, get: () => State, updater: (s: State) => void) {
-  set((s: State) => {
-    const draft = { ...s };
-    updater(draft);
-    draft.version = (draft.version || 0) + 1;
-    return draft;
-  });
-  writeStorage(get);
+/** Read-only accessor used by views without forcing a re-render */
+export function getWeek(weekStart: number): WeekGoals {
+  const w = useWeeklyGoals.getState().weeks[weekStart];
+  return w ?? { goals: {} };
 }
 
-/* =======================
-   Store
-   ======================= */
-export const useWeeklyGoals = create<State>((set, get) => {
-  const loaded = readStorage();
-  const byWeek = loaded.byWeek || {};
-
-  return {
-    byWeek,
-    version: 0,
-
-    hydrate(data) {
-      commit(set, get, (s) => {
-        if (data.byWeek) s.byWeek = data.byWeek;
-      });
-    },
-
-    setGoal(weekAnchorMs, key, state) {
-      const wk = weekStartMs(weekAnchorMs, WEEK_START_DOW) as WeekKey;
-      const val = normalizeState(state);
-      commit(set, get, (s) => {
-        const cur = s.byWeek[wk] ?? { weekStartMs: wk, goals: {} };
-        s.byWeek[wk] = { weekStartMs: wk, goals: { ...cur.goals, [key]: val } };
-      });
-    },
-
-    toggleGoal(weekAnchorMs, key) {
-      const wk = weekStartMs(weekAnchorMs, WEEK_START_DOW) as WeekKey;
-      commit(set, get, (s) => {
-        const cur = s.byWeek[wk] ?? { weekStartMs: wk, goals: {} };
-        const next = toggleBinary(cur.goals[key]);
-        s.byWeek[wk] = { weekStartMs: wk, goals: { ...cur.goals, [key]: next } };
-      });
-    },
-
-    clearGoal(weekAnchorMs, key) {
-      const wk = weekStartMs(weekAnchorMs, WEEK_START_DOW) as WeekKey;
-      commit(set, get, (s) => {
-        const cur = s.byWeek[wk];
-        if (!cur) return;
-        const goals = { ...cur.goals };
-        delete goals[key];
-        s.byWeek[wk] = { weekStartMs: wk, goals };
-      });
-    },
-
-    clearWeek(weekAnchorMs) {
-      const wk = weekStartMs(weekAnchorMs, WEEK_START_DOW) as WeekKey;
-      commit(set, get, (s) => {
-        delete s.byWeek[wk];
-      });
-    },
-  };
-});
-
-/* =======================
-   Accessors (non-reactive)
-   ======================= */
-export function getWeek(weekAnchorMs: number): WeeklyGoalsForWeek {
-  const wk = weekStartMs(weekAnchorMs, WEEK_START_DOW) as WeekKey;
-  return useWeeklyGoals.getState().byWeek[wk] ?? { weekStartMs: wk, goals: {} };
+/** Programmatic setters used by views */
+export function setGoal(weekStart: number, goal: string, status: GoalStatus = "planned") {
+  useWeeklyGoals.getState().setGoal(weekStart, goal, status);
+}
+export function toggleGoal(weekStart: number, goal: string) {
+  useWeeklyGoals.getState().toggleGoal(weekStart, goal);
+}
+export function clearGoal(weekStart: number, goal: string) {
+  useWeeklyGoals.getState().clearGoal(weekStart, goal);
 }
 
-export function getGoal(weekAnchorMs: number, key: string): WeeklyGoalState | undefined {
-  return getWeek(weekAnchorMs).goals[key];
+/** Move and preserve status. Returns false if blocked or not found. */
+export function moveGoal(fromWeek: number, toWeek: number, goal: string): boolean {
+  return useWeeklyGoals.getState().moveGoal(fromWeek, toWeek, goal);
 }
 
-export function listWeeks(): WeekKey[] {
-  return Object.keys(useWeeklyGoals.getState().byWeek)
-    .map((k) => Number(k))
-    .filter((n) => Number.isFinite(n))
-    .sort((a, b) => a - b);
-}
-
-/* =======================
-   Thin re-exports for components
-   ======================= */
-export function setGoal(weekAnchorMs: number, key: string, state: WeeklyGoalState | boolean | string | number) {
-  return useWeeklyGoals.getState().setGoal(weekAnchorMs, key, state);
-}
-export function toggleGoal(weekAnchorMs: number, key: string) {
-  return useWeeklyGoals.getState().toggleGoal(weekAnchorMs, key);
-}
-export function clearGoal(weekAnchorMs: number, key: string) {
-  return useWeeklyGoals.getState().clearGoal(weekAnchorMs, key);
-}
-export function clearWeek(weekAnchorMs: number) {
-  return useWeeklyGoals.getState().clearWeek(weekAnchorMs);
-}
+/* ---------- Optional: migration hook ---------- */
+// Example: rename LS key, merge older shapes, etc.
+// Immediately run once on import to normalize persisted data.
+(function migrateOnce() {
+  const state = useWeeklyGoals.getState();
+  // add any future migrations here
+  save(state);
+})();

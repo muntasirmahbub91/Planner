@@ -1,45 +1,41 @@
-// src/views/YearView.tsx — compact goals, header caret only, bottom Add, no loss of function
+// src/views/YearView.tsx — fixed 12-weeks/quarter + drag-and-drop move between weeks
 import React from "react";
 import "./YearView.css";
-import { setView, type View } from "@/stores/viewStore";
+import { setView } from "@/stores/viewStore";
 import { useDateStore, dayMs, WEEK_START_DOW, weekStartMs } from "@/stores/dateStore";
 import { useWeeklyGoals, getWeek, setGoal, toggleGoal, clearGoal } from "@/stores/weeklyGoals";
 import AddButton from "@/components/AddButton";
 import ToggleButton from "@/components/ToggleButton";
 
-/* ---- time helpers ---- */
+/* ---------- DnD ---------- */
+const DND_MIME = "application/x-plannerx-goal";
+
+/* ---------- Time helpers ---------- */
 const MS_DAY = 24 * 60 * 60 * 1000;
 const MS_WEEK = 7 * MS_DAY;
-
 const startOfWeek = (ms: number) => weekStartMs(ms, WEEK_START_DOW);
-const startOfQuarter = (year: number, q: 1 | 2 | 3 | 4) => {
-  const m = (q - 1) * 3;
-  const d = new Date(year, m, 1);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-};
-const nextQuarterStart = (year: number, q: 1 | 2 | 3 | 4) =>
-  q < 4 ? startOfQuarter(year, (q + 1) as 2 | 3 | 4) : startOfQuarter(year + 1, 1);
 
-function weekNumberOfYear(weekStart: number) {
-  const d = new Date(weekStart);
-  const yearStart = startOfWeek(new Date(d.getFullYear(), 0, 1).getTime());
-  return Math.floor((weekStart - yearStart) / MS_WEEK) + 1;
+/** Year anchor = week containing Jan 1 aligned to WEEK_START_DOW */
+function yearWeek0(year: number) {
+  const jan1 = new Date(year, 0, 1).getTime();
+  return startOfWeek(jan1);
 }
-function quarterWeekStarts(year: number, q: 1 | 2 | 3 | 4): number[] {
-  const qStart = startOfQuarter(year, q);
-  const qEnd = nextQuarterStart(year, q);
-  let w = startOfWeek(qStart);
-  if (w < qStart) w += MS_WEEK;
+
+/** Exactly 12 weeks per quarter. No overlaps. Stable keys. */
+function weeksForQuarter(year: number, q: 1 | 2 | 3 | 4): number[] {
+  const base = yearWeek0(year) + (q - 1) * 12 * MS_WEEK;
   const out: number[] = [];
-  while (w < qEnd) {
-    out.push(w);
-    w += MS_WEEK;
-  }
+  for (let i = 0; i < 12; i++) out.push(base + i * MS_WEEK);
   return out;
 }
 
-/* ---- Weekly row ---- */
+function weekNumberOfYear(weekStart: number) {
+  const y = new Date(weekStart).getFullYear();
+  const y0 = yearWeek0(y);
+  return Math.floor((weekStart - y0) / MS_WEEK) + 1;
+}
+
+/* ---------- Weekly Row ---------- */
 function WeeklyRow({
   weekStart,
   onOpenWeek,
@@ -49,14 +45,14 @@ function WeeklyRow({
   onOpenWeek: (ms: number) => void;
   currentWeekStart: number;
 }) {
-  useWeeklyGoals(); // subscribe to store changes
-  const goalsRec = getWeek(weekStart).goals;
+  useWeeklyGoals(); // subscribe to store updates
+  const goalsRec = getWeek(weekStart).goals || {};
   const items = Object.keys(goalsRec);
 
-  // elapsed weeks collapsed by default
   const [open, setOpen] = React.useState<boolean>(weekStart >= currentWeekStart);
   const [compose, setCompose] = React.useState(false);
   const [draft, setDraft] = React.useState("");
+  const [isDrop, setIsDrop] = React.useState(false);
 
   const code = `W${String(weekNumberOfYear(weekStart)).padStart(2, "0")}`;
   const sub = new Date(weekStart).toLocaleDateString(undefined, { day: "2-digit", month: "short" });
@@ -65,15 +61,44 @@ function WeeklyRow({
   const onAdd = () => {
     const name = draft.trim();
     if (!name) return;
+    if (Object.keys(getWeek(weekStart).goals).length >= 3) return;
     setGoal(weekStart, name, "planned");
     setDraft("");
     setCompose(false);
   };
 
+  const allowDrop = (e: React.DragEvent) => {
+    if (Array.from(e.dataTransfer.types).includes(DND_MIME)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setIsDrop(true);
+    }
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDrop(false);
+    const payload = e.dataTransfer.getData(DND_MIME);
+    if (!payload) return;
+    try {
+      const { goal, from, status } = JSON.parse(payload) as {
+        goal: string;
+        from: number;
+        status: "planned" | "done";
+      };
+      if (!goal || from === weekStart) return;
+      // capacity guard
+      if (Object.keys(getWeek(weekStart).goals || {}).length >= 3) return;
+      setGoal(weekStart, goal, status);
+      clearGoal(from, goal);
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <section className={`yvWeek ${open ? "is-open" : "is-closed"} ${isCurrent ? "is-current" : ""}`}>
       <div className="yvWeekHeader">
-        {/* Open Week view via meta button */}
         <button
           type="button"
           className="yvWeekMeta"
@@ -85,7 +110,6 @@ function WeeklyRow({
           <span className="yvBadge">{items.length}/3</span>
         </button>
 
-        {/* Caret toggles collapse only (no green + in header) */}
         <div className="yvWeekHeaderRight">
           <button
             type="button"
@@ -99,13 +123,27 @@ function WeeklyRow({
         </div>
       </div>
 
-      <div className="yvWeekBody">
-        {/* Goals as plain text rows (no input outline) */}
+      <div
+        className={`yvWeekBody${isDrop ? " is-drop" : ""}`}
+        onDragOver={allowDrop}
+        onDragLeave={() => setIsDrop(false)}
+        onDrop={onDrop}
+      >
         <div className="yvGoals">
           {items.map((g) => {
-            const checked = goalsRec[g] === "done";
+            const status = goalsRec[g];
+            const checked = status === "done";
             return (
-              <div className="yvGoalItem" key={g}>
+              <div
+                className="yvGoalItem"
+                key={g}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(DND_MIME, JSON.stringify({ goal: g, from: weekStart, status }));
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                title="Drag to another week"
+              >
                 <ToggleButton checked={checked} onChange={() => toggleGoal(weekStart, g)} />
                 <div className="yvGoalText" style={{ textDecoration: checked ? "line-through" : "none" }}>
                   {g}
@@ -124,7 +162,6 @@ function WeeklyRow({
           })}
         </div>
 
-        {/* Bottom composer only */}
         <div className="yvRowActions">
           <AddButton aria-label="Add weekly goal" onClick={() => setCompose(true)} disabled={items.length >= 3} />
           {compose && items.length < 3 && (
@@ -153,7 +190,7 @@ function WeeklyRow({
   );
 }
 
-/* ---- Year view ---- */
+/* ---------- Main Year View ---------- */
 export default function YearView() {
   const selectedMs = useDateStore((s) => dayMs(s.selected));
   const year = new Date(selectedMs).getFullYear();
@@ -161,10 +198,10 @@ export default function YearView() {
 
   const openWeek = React.useCallback((weekMs: number) => {
     useDateStore.getState().setMs(weekMs);
-    setView("week" as View);
+    setView("week");
   }, []);
 
-  const go = React.useCallback(
+  const goYear = React.useCallback(
     (delta: number) => {
       const d = new Date(selectedMs);
       d.setFullYear(d.getFullYear() + delta);
@@ -174,24 +211,22 @@ export default function YearView() {
     [selectedMs]
   );
 
-  const m = new Date(selectedMs).getMonth();
-  const currentQ = (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4;
-
+  const currentQ = (Math.floor(new Date(selectedMs).getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
   const [openQs, setOpenQs] = React.useState<Set<1 | 2 | 3 | 4>>(new Set([currentQ]));
   const toggleQ = React.useCallback((q: 1 | 2 | 3 | 4) => {
     setOpenQs((prev) => {
       const next = new Set(prev);
       next.has(q) ? next.delete(q) : next.add(q);
-      return next;
+      return next as Set<1 | 2 | 3 | 4>;
     });
   }, []);
 
   const qWeeks = React.useMemo(
     () => ({
-      1: quarterWeekStarts(year, 1),
-      2: quarterWeekStarts(year, 2),
-      3: quarterWeekStarts(year, 3),
-      4: quarterWeekStarts(year, 4),
+      1: weeksForQuarter(year, 1),
+      2: weeksForQuarter(year, 2),
+      3: weeksForQuarter(year, 3),
+      4: weeksForQuarter(year, 4),
     }),
     [year]
   );
@@ -203,14 +238,14 @@ export default function YearView() {
       {/* Year banner */}
       <div className="yvBannerWrap">
         <div className="yvBanner">
-          <button type="button" className="yvChev" aria-label="Previous year" onClick={() => go(-1)}>
+          <button type="button" className="yvChev" aria-label="Previous year" onClick={() => goYear(-1)}>
             ‹
           </button>
           <div style={{ textAlign: "center" }}>
             <div className="yvTitle" aria-live="polite">{`YEAR ${year}`}</div>
             <div className="yvSubTitle">{`JAN–DEC, ${year}`}</div>
           </div>
-          <button type="button" className="yvChev" aria-label="Next year" onClick={() => go(+1)}>
+          <button type="button" className="yvChev" aria-label="Next year" onClick={() => goYear(+1)}>
             ›
           </button>
         </div>
