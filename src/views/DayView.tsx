@@ -11,9 +11,9 @@ import HabitsSection from "@/sections/HabitsSection";
 import WeightTracker from "@/sections/WeightTracker";
 
 /* ---- Quarterly bar size control (no visible slider) ---- */
-const QBAR_BASE = 380;           // base px
+const QBAR_BASE = 480;           // base px
 const SCALE_MIN = 0.6;
-const SCALE_MAX = 2;
+const SCALE_MAX = 1;
 const LS_KEY = "qbar.scale";     // persisted scale
 const SHOW_QBAR_SCALER = false;  // hide controls
 
