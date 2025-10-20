@@ -1,143 +1,282 @@
-/* src/views/MonthView.css */
+/* src/views/MonthView.css
+   Weekly single-pill calendar with week numbers, seven partitions, month-change tint,
+   infinite scroll, reminder dots. */
 
-/* layout */
-.mv {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
+/* ===== Tokens ===== */
+:root{
+  --bg:#fff; --ink:#0f172a; --rule:#28354e;
+  --pill-border:#5f5656; --pill-a:#94b89b; --pill-b:#e6f3ea;
+  --past:#f7e257; --future:#e8f5e9; --today:#0f172a;
+  --dot-rem:#ef4444; --weekno-bg:#f8fafc; --weekno-border:#e2e8f0;
 }
 
-/* banner */
-.mv-banner {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  align-items: center;
-  position: relative;      /* keep above grid */
-  z-index: 10;
-  pointer-events: auto;
+.mv{
+  background:var(--bg);
+  color:var(--ink);
+  padding:12px 14px 20px;
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans";
 }
 
-.mv-bannerCenter {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
+/* ===== Header ===== */
+.mv-banner{
+  display:grid;
+  grid-template-columns:40px 1fr 40px;
+  align-items:center;
+  gap:8px;
+  margin:6px 0 10px;
+}
+.mv-bannerCenter{ display:flex; justify-content:center; align-items:center; gap:10px; }
+.mv-title{ font-weight:800; font-size:18px; }
+.mv-todayBtn{
+  border:1px solid var(--rule);
+  border-radius:999px;
+  background:#fff;
+  padding:6px 10px;
+  font-size:13px;
+  cursor:pointer;
+}
+.mv-chev{
+  background:#fff;
+  border:1px solid var(--rule);
+  border-radius:999px;
+  width:36px;height:36px;
+  line-height:36px;text-align:center;
+  cursor:pointer;
 }
 
-.mv-title {
+/* ===== Weekday ribbon ===== */
+.mv-weekRibbon{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+.mv-weekRibbonCell{
+  text-align:center;
+  font-weight:700;
+  color:#334155;
+  background:var(--future);
+  border:2px solid var(--pill-border);
+  border-radius:999px;
+  padding:8px 0;
+}
+
+/* ===== Scroller ===== */
+.mv-scroll{
+  height:calc(100vh - 220px);
+  overflow:auto;
+  display:block;
+}
+
+/* ===== Week row ===== */
+.mv-weekRow{
+  display:grid;
+  grid-template-columns:auto 64px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  width:100%;
+}
+.mv-yearChip{ font-weight:800; color:var(--ink); }
+
+/* Week number */
+.mv-weekNo{
+  height:48px; min-width:64px;
+  display:grid; place-items:center;
+  font-weight:800; color:#334155;
+  background:var(--weekno-bg);
+  border:1px solid var(--weekno-border);
+  border-radius:12px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ===== Single pill with 7 partitions ===== */
+.mv-weekPillOne{
+  position:relative;
+  display:block;
+  width:100%; min-width:0;
+  height:48px;
+  border-radius:999px;
+  background:var(--pill-a);
+  border:2px solid var(--pill-border);
+  cursor:pointer;
+  padding:0;
+  overflow:hidden;
+  justify-self:stretch;
+}
+.mv-weekPillOne.mv-pTintA{ background:var(--pill-a); }
+.mv-weekPillOne.mv-pTintB{ background:var(--pill-b); }
+
+/* Partition track */
+.mv-partitions{ position:absolute; inset:0; }
+
+/* Each partition (1/7 width) */
+.mv-part{
+  position:absolute; top:0; bottom:0;
+  width:calc(100%/7);
+  display:grid; place-items:center;
+  box-shadow:inset -1px 0 0 rgba(0,0,0,.08);
+  transition:transform .08s ease, background-color .12s ease, color .12s ease;
+}
+.mv-partPast{
+  background:var(--past);
+  color:#fff;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.25);
+}
+.mv-partFuture{ background:var(--future); color:#0f172a; }
+.mv-partToday{ outline:2px solid var(--today); outline-offset:-2px; z-index:2; }
+/* thicker separator when a new month starts */
+.mv-partNewMonth{
+  box-shadow:
+    inset -2px 0 0 rgba(15,23,42,.25),
+    inset -1px 0 0 rgba(15,23,42,.25);
+}
+
+.mv-partNum{ font-weight:800; font-variant-numeric:tabular-nums; pointer-events:none; }
+.mv-remDot{
+  position:absolute; right:8px; bottom:8px;
+  width:8px; height:8px; border-radius:999px;
+  background:var(--dot-rem);
+  pointer-events:none;
+}
+
+/* Focus/hover */
+.mv-weekPillOne:focus-visible{ outline:2px solid #60a5fa; outline-offset:2px; }
+.mv-part:hover{ transform:translateY(-1px); }
+
+/* ===== Responsive ===== */
+@media (max-width:720px){
+  .mv-weekRow{ grid-template-columns:auto 54px minmax(0,1fr); }
+  .mv-weekNo{ height:44px; min-width:54px; font-size:13px; }
+  .mv-weekPillOne{ height:44px; }
+}
+@media (max-width:420px){
+  .mv-weekRow{ grid-template-columns:auto 48px minmax(0,1fr); gap:8px; }
+  .mv-weekNo{ height:40px; min-width:48px; }
+  .mv-weekPillOne{ height:40px; }
+}
+/* Week list container can stay block */
+.mv-scroll{ height:calc(100vh - 220px); overflow:auto; display:block; }
+
+/* Use flex so the pill spans the row */
+.mv-weekRow{
+  display:flex;                /* ← was grid */
+  align-items:center;
+  gap:10px;
+  width:100%;
+}
+
+/* Year chip keeps natural width */
+.mv-yearChip{ font-weight:800; color:var(--ink); }
+
+/* Fixed-size week number */
+.mv-weekNo{
+  height:48px; width:64px;     /* width instead of min-width */
+  display:grid; place-items:center;
+  font-weight:800; color:#334155;
+  background:var(--weekno-bg);
+  border:1px solid var(--weekno-border);
+  border-radius:12px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Pill grows to fill remaining width */
+.mv-weekPillOne{
+  position:relative;
+  flex:1 1 0;                  /* ← key line: grow and take all free space */
+  width:auto;                  /* ignore earlier width:100% */
+  height:48px;
+  border-radius:999px;
+  background:var(--pill-a);
+  border:2px solid var(--pill-border);
+  padding:0; overflow:hidden; cursor:pointer;
+}
+
+/* Partitions remain the same */
+.mv-partitions{ position:absolute; inset:0; }
+.mv-part{ position:absolute; top:0; bottom:0; width:calc(100%/7);
+  display:grid; place-items:center; box-shadow:inset -1px 0 0 rgba(0,0,0,.08);
+  transition:transform .08s ease, background-color .12s ease, color .12s ease;
+}
+
+/* Responsive tweaks with flex */
+@media (max-width:720px){
+  .mv-weekNo{ height:44px; width:54px; font-size:13px; }
+  .mv-weekPillOne{ height:44px; }
+}
+@media (max-width:420px){
+  .mv-weekNo{ height:40px; width:48px; }
+  .mv-weekPillOne{ height:40px; }
+}
+/* space between weeks */
+.mv-weekRow + .mv-weekRow{
+  margin-top: 12px;   /* adjust 8–16 to taste */
+}
+/* Put the year on its own line, big and bold */
+.mv-weekRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  flex-wrap: wrap;                 /* allow a full-width year line */
+}
+
+.mv-yearChip{
+  flex-basis: 100%;                /* full width line */
+  font-weight: 900;
   font-size: 22px;
-  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--ink);
+  margin: 18px 0 6px 74px;         /* align under the week-number column: 64px + 10px gap */
 }
 
-.mv-chev {
-  appearance: none;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
-}
+/* keep week number fixed; pill fills */
+.mv-weekNo{ width:64px; height:48px; }
+.mv-weekPillOne{ flex:1 1 0; }
 
-.mv-todayBtn {
-  background: transparent;
-  border: 0;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: 13px;
-  color: #111;
+/* responsive offsets (match smaller week-number widths) */
+@media (max-width:720px){
+  .mv-weekNo{ width:54px; height:44px; }
+  .mv-yearChip{ margin-left: 64px; }  /* 54 + 10 gap */
 }
+@media (max-width:420px){
+  .mv-weekNo{ width:48px; height:40px; }
+  .mv-yearChip{ margin-left: 58px; }  /* 48 + ~10 gap */
+}
+/* Month tints — future (light) + past (deeper) */
+/* Jan */
+.mv-partFuture.mv-m0 { background:#F4F1DE; color:#0f172a; }
+.mv-partPast.mv-m0   { background:#E0DCC2; color:#0f172a; }
+/* Feb */
+.mv-partFuture.mv-m1 { background:#EDE6F6; }
+.mv-partPast.mv-m1   { background:#D7CBEA; }
+/* Mar */
+.mv-partFuture.mv-m2 { background:#E6F3EA; }
+.mv-partPast.mv-m2   { background:#CFE6D6; }
+/* Apr */
+.mv-partFuture.mv-m3 { background:#E6F0F8; }
+.mv-partPast.mv-m3   { background:#CFE0F1; }
+/* May */
+.mv-partFuture.mv-m4 { background:#FCEFEA; }
+.mv-partPast.mv-m4   { background:#F7DED3; }
+/* Jun */
+.mv-partFuture.mv-m5 { background:#EAF7F7; }
+.mv-partPast.mv-m5   { background:#D3EEEE; }
+/* Jul */
+.mv-partFuture.mv-m6 { background:#FFF4E6; }
+.mv-partPast.mv-m6   { background:#FFE3BF; }
+/* Aug */
+.mv-partFuture.mv-m7 { background:#F1F7E8; }
+.mv-partPast.mv-m7   { background:#DBEBCA; }
+/* Sep */
+.mv-partFuture.mv-m8 { background:#EAF0FF; }
+.mv-partPast.mv-m8   { background:#D4E0FF; }
+/* Oct */
+.mv-partFuture.mv-m9 { background:#F6EAF3; }
+.mv-partPast.mv-m9   { background:#E7D1E3; }
+/* Nov */
+.mv-partFuture.mv-m10 { background:#EEF6EA; }
+.mv-partPast.mv-m10   { background:#D7EACF; }
+/* Dec */
+.mv-partFuture.mv-m11 { background:#ECECEC; }
+.mv-partPast.mv-m11   { background:#D8D8D8; }
 
-/* weekday header */
-.mv-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.mv-weekCell {
-  text-align: center;
-  font-size: 12px;
-  opacity: 0.7;
-}
-
-/* grid */
-.mv-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  position: relative;
-  z-index: 1;              /* lower than banner */
-}
-
-.mv-cell {
-  border: 1px solid #eee;
-  border-radius: 10px;
-  min-height: 92px;
-  padding: 8px;
-  background: #fff;
-  cursor: pointer;
-}
-
-.mv-cell--muted {
-  opacity: 0.5;
-}
-
-.mv-cell--today {
-  box-shadow: inset 0 0 0 2px #111;
-}
-
-.mv-cellHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.mv-dateNum {
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.mv-count {
-  font-size: 11px;
-  padding: 2px 6px;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-}
-
-.mv-items {
-  display: grid;
-  gap: 4px;
-}
-
-.mv-item {
-  display: grid;
-  grid-template-columns: 8px 1fr;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.mv-item--done .mv-text {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.mv-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.mv-more {
-  font-size: 11px;
-  opacity: 0.7;
-}
-
-/* ensure buttons always clickable even if a parent sets pointer-events */
-.mv-banner .mv-chev,
-.mv-todayBtn {
-  pointer-events: auto;
-}
+/* keep separators and today outline from your existing file */
