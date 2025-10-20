@@ -280,3 +280,22 @@
 .mv-partPast.mv-m11   { background:#D8D8D8; }
 
 /* keep separators and today outline from your existing file */
+/* ---- align weekday ribbon with pill column ---- */
+:root{
+  --weekno-w: 64px;   /* width of Wxx badge */
+  --weekcol-gap: 10px;/* gap between badge and pill */
+}
+
+/* push the weekday labels right so they sit over the pill column */
+.mv-weekRibbon{
+  margin-left: calc(var(--weekno-w) + var(--weekcol-gap));
+  max-width: calc(100% - var(--weekno-w) - var(--weekcol-gap));
+}
+
+/* keep it aligned on smaller breakpoints */
+@media (max-width: 720px){
+  :root{ --weekno-w: 54px; }
+}
+@media (max-width: 420px){
+  :root{ --weekno-w: 48px; }
+}
